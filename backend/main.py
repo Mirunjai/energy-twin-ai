@@ -1,9 +1,36 @@
 import time
 import sys
+import logging.config
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from agents.geo_agent import GeopoliticalAgent
 from models.schemas import DisruptionSignal, CrisisRoomResponse
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "level": "INFO",
+        }
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True
+        }
+    }
+}
+logging.config.dictConfig(LOGGING_CONFIG)
+logger = logging.getLogger(__name__)
 
 START_EPOCH = time.time()
 
@@ -13,7 +40,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Corrected CORS specification for credentialed requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:3000"],
@@ -22,7 +48,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-geo_agent = GeopoliticalAgent()
+# Constructor now allows mapping configs, future-proofing for GraphRAG and historical DBs
+geo_agent = GeopoliticalAgent(config={"analysis_version": "1.1.0"})
 
 @app.middleware("http")
 async def add_telemetry_headers(request, call_next):
@@ -55,8 +82,12 @@ async def trigger_crisis_room(signal: DisruptionSignal):
             event_type=signal.event_type,
             raw_text=signal.headline
         )
+    except ValueError as ve:
+        logger.warning(f"Validation error on input: {str(ve)}")
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Geopolitical Agent runtime fault: {str(e)}")
+        logger.error(f"Geopolitical Agent runtime fault: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal agent processing failure.")
         
     latency = (time.perf_counter() - start_time) * 1000
     
