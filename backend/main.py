@@ -6,7 +6,12 @@ import logging.config
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+# Bring in the full ecosystem
+from config.settings import settings
 from agents.geo_agent import GeopoliticalAgent
+from graph.network_graph import SupplyChainGraph
+from services.orchestrator import CrisisOrchestrator
 from models.schemas import DisruptionSignal, CrisisRoomResponse
 
 # Context variable to hold the Request ID across async boundaries
@@ -82,7 +87,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-geo_agent = GeopoliticalAgent()
+# Initialize the ecosystem globally so it persists across requests
+geo_agent = GeopoliticalAgent(app_settings=settings)
+canonical_graph = SupplyChainGraph(data_path="data/supply_network.json")
+orchestrator = CrisisOrchestrator(geo_agent=geo_agent, canonical_graph=canonical_graph)
 
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
@@ -113,7 +121,7 @@ async def health_check():
     return {
         "status": "operational",
         "version": app.version,
-        "agents_loaded": ["GeopoliticalAgent"],
+        "agents_loaded": ["GeopoliticalAgent", "CrisisOrchestrator"],
         "uptime_seconds": round(time.time() - START_EPOCH, 2)
     }
 
@@ -123,27 +131,22 @@ async def trigger_crisis_room(signal: DisruptionSignal):
     logger.info(f"Incoming disruption signal: {signal.event_type.value} in {signal.corridor}")
     
     try:
-        geo_output = geo_agent.analyze_signal(
-            corridor=signal.corridor,
-            supplier=signal.supplier,
-            event_type=signal.event_type,
-            raw_text=signal.headline
-        )
+        # Route through the Orchestrator's Context Pipeline
+        sim_context = orchestrator.process_disruption(signal)
     except ValueError as ve:
         logger.warning(f"Validation error on input: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception:
-        logger.exception("Geopolitical Agent runtime fault")
-        raise HTTPException(status_code=500, detail="Internal agent processing failure.")
+        logger.exception("Orchestrator runtime fault")
+        raise HTTPException(status_code=500, detail="Internal processing failure.")
         
     latency = (time.perf_counter() - start_time) * 1000
     
     return CrisisRoomResponse(
         status="processed",
         execution_latency_ms=round(latency, 2),
-        geopolitical_matrix=geo_output
+        simulation_context=sim_context
     )
-
 
 if __name__ == "__main__":
     import uvicorn
