@@ -1,17 +1,20 @@
-"""FastAPI entry point for disruption scenario orchestration."""
-
-import asyncio
-import uuid
-from typing import Any
-
-from fastapi import FastAPI
+import time
+import sys
+from datetime import datetime, timezone
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import Dict, Any
+from agents.geo_agent import GeopoliticalAgent, EventType
 
-from backend.agents.orchestrator import run_orchestration
+# Initialize uptime baseline variables
+START_EPOCH = time.time()
 
-
-app = FastAPI(title="Energy Twin AI Backend", version="0.1.0")
+app = FastAPI(
+    title="Energy Twin AI Engine",
+    description="Multi-Agent Cryptogeopolitical Core for Supply Chain Resilience Optimization",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,49 +24,63 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Active agent instances
+geo_agent = GeopoliticalAgent()
 
-class ScenarioRequest(BaseModel):
-    scenario_type: str = Field(default="chokepoint_disruption")
-    payload: dict[str, Any] = Field(default_factory=dict)
+class DisruptionSignal(BaseModel):
+    corridor: str = Field(..., description="Target transit corridor lookup index")
+    supplier: str = Field(..., description="Crude oil source country")
+    event_type: EventType = Field(..., description="Validated type indicator")
+    headline: str = Field(..., description="Raw text context description")
 
-
-class ScenarioResponse(BaseModel):
-    run_id: str
+class CrisisRoomResponse(BaseModel):
     status: str
+    execution_latency_ms: float
+    geopolitical_matrix: Dict[str, Any]
 
+@app.middleware("http")
+async def add_telemetry_headers(request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = (time.perf_counter() - start_time) * 1000
+    
+    response.headers["X-System-Latency-MS"] = f"{process_time:.2f}"
+    response.headers["X-Agent"] = "Geo"
+    return response
 
-scenario_runs: dict[str, dict[str, Any]] = {}
-
-
-async def _run_scenario(run_id: str, request: ScenarioRequest) -> None:
-    scenario_runs[run_id]["status"] = "running"
-    result = await run_orchestration(request.scenario_type, request.payload)
-    scenario_runs[run_id].update({"status": "completed", "result": result})
-
-
-@app.get("/health")
-async def health_check() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.post("/scenarios/trigger", response_model=ScenarioResponse)
-async def trigger_scenario(request: ScenarioRequest) -> ScenarioResponse:
-    run_id = str(uuid.uuid4())
-    scenario_runs[run_id] = {
-        "scenario_type": request.scenario_type,
-        "payload": request.payload,
-        "status": "queued",
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "operational",
+        "version": "1.0.0",
+        "agents_loaded": ["GeopoliticalAgent"],
+        "uptime_seconds": round(time.time() - START_EPOCH, 2),
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     }
-    asyncio.create_task(_run_scenario(run_id, request))
-    return ScenarioResponse(run_id=run_id, status="queued")
 
-
-@app.get("/scenarios/{run_id}")
-async def get_scenario(run_id: str) -> dict[str, Any]:
-    return scenario_runs.get(run_id, {"status": "not_found"})
-
+@app.post("/api/crisis/trigger", response_model=CrisisRoomResponse)
+async def trigger_crisis_room(signal: DisruptionSignal):
+    start_time = time.perf_counter()
+    
+    try:
+        geo_output = geo_agent.analyze_signal(
+            corridor=signal.corridor,
+            supplier=signal.supplier,
+            event_type=signal.event_type
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Geopolitical Agent runtime fault: {str(e)}")
+        
+    # TODO: Sequence subsequent modules (Comm -> Graph -> Monte Carlo -> Optimization)
+    
+    latency = (time.perf_counter() - start_time) * 1000
+    
+    return CrisisRoomResponse(
+        status="processed",
+        execution_latency_ms=round(latency, 2),
+        geopolitical_matrix=geo_output
+    )
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
