@@ -19,7 +19,7 @@ class CrisisOrchestrator:
             metadata={"analysis_version": "1.1.0", "scenario_name": f"{signal.corridor}_crisis"}
         )
         
-        # 1. Geopolitical Agent
+        # 1. Geopolitical Agent (Bayesian updates are handled internally here)
         self.geo_agent.run(context)
         
         # 2. Graph Snapshot Setup
