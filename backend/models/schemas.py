@@ -56,6 +56,8 @@ class MonteCarloResults(BaseModel):
     expected_shortfall_mbd: float
     max_shortfall_mbd: float
     confidence_interval_str: str
+    histogram_bins: List[float]    # New: UI charting data
+    histogram_counts: List[int]    # New: UI charting data
 
 class SimulationContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
