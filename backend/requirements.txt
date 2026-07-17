@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+langchain
+networkx
+scipy
+numpy
+hmmlearn
+chromadb
+python-dotenv
