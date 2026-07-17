@@ -3,6 +3,7 @@ import sys
 import uuid
 import contextvars
 import logging.config
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from agents.geo_agent import GeopoliticalAgent
@@ -48,15 +49,29 @@ LOGGING_CONFIG = {
 }
 
 logging.config.dictConfig(LOGGING_CONFIG)
-logging.Formatter.converter = time.gmtime  # Enforce UTC timestamps
-logger = logging.getLogger("energy_twin.api")
+logging.Formatter.converter = time.gmtime  
+logger = logging.getLogger("energy_twin.backend.api")
 
 START_EPOCH = time.time()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info(
+        "Energy Twin AI Engine initializing",
+        extra={
+            "version": app.version,
+            "python": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            "start_epoch": START_EPOCH,
+        }
+    )
+    yield
+    logger.info("Energy Twin AI Engine shutting down")
 
 app = FastAPI(
     title="Energy Twin AI Engine",
     description="Multi-Agent Cryptogeopolitical Core for Supply Chain Resilience Optimization",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -69,32 +84,29 @@ app.add_middleware(
 
 geo_agent = GeopoliticalAgent(config={"analysis_version": "1.1.0"})
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info(
-        "Energy Twin AI Engine initializing",
-        extra={
-            "version": app.version,
-            "python": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-            "start_epoch": START_EPOCH,
-        }
-    )
-
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
-    # Generate and set the UUID for this specific request
-    req_id = str(uuid.uuid4())[:8] # Short UUID for cleaner terminal readability
+    req_id = str(uuid.uuid4())[:8]
     token = request_id_var.set(req_id)
-    
     start_time = time.perf_counter()
-    response = await call_next(request)
-    process_time = (time.perf_counter() - start_time) * 1000
     
-    response.headers["X-Request-ID"] = req_id
-    response.headers["X-System-Latency-MS"] = f"{process_time:.2f}"
-    
-    request_id_var.reset(token)
-    return response
+    try:
+        response = await call_next(request)
+        process_time = (time.perf_counter() - start_time) * 1000
+        
+        response.headers["X-Request-ID"] = req_id
+        response.headers["X-System-Latency-MS"] = f"{process_time:.2f}"
+        
+        logger.info(
+            "Request completed",
+            extra={
+                "status_code": response.status_code,
+                "latency_ms": round(process_time, 2),
+            }
+        )
+        return response
+    finally:
+        request_id_var.reset(token)
 
 @app.get("/api/health")
 async def health_check():
@@ -120,19 +132,14 @@ async def trigger_crisis_room(signal: DisruptionSignal):
     except ValueError as ve:
         logger.warning(f"Validation error on input: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
-    except Exception as e:
-        logger.error(f"Geopolitical Agent runtime fault: {str(e)}")
+    except Exception:
+        logger.exception("Geopolitical Agent runtime fault")
         raise HTTPException(status_code=500, detail="Internal agent processing failure.")
         
     latency = (time.perf_counter() - start_time) * 1000
-    logger.info(f"Crisis evaluation complete in {latency:.2f}ms")
     
     return CrisisRoomResponse(
         status="processed",
         execution_latency_ms=round(latency, 2),
         geopolitical_matrix=geo_output
     )
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
