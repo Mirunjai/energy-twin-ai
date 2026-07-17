@@ -46,10 +46,15 @@ class ProcurementAlternative(BaseModel):
 
 class MonteCarloResults(BaseModel):
     iterations: int
+    simulation_seed: int
     spr_days_remaining_mean: float
-    spr_days_remaining_p5: float  # 5th percentile (Worst case)
-    spr_days_remaining_p95: float # 95th percentile (Best case)
+    spr_days_remaining_median: float
+    spr_days_remaining_std_dev: float
+    spr_days_remaining_p5: float  
+    spr_days_remaining_p50: float 
+    spr_days_remaining_p95: float 
     expected_shortfall_mbd: float
+    max_shortfall_mbd: float
     confidence_interval_str: str
 
 class SimulationContext(BaseModel):
