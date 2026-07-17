@@ -1,25 +1,26 @@
 def bayesian_update(prior: float, p_e_given_h: float, p_e_given_not_h: float) -> dict:
     """
-    Executes a standard Bayesian probability update and returns structural odds,
-    likelihood ratios, and risk metrics.
+    Executes a standard Bayesian probability update using odds form.
     """
-    # Calculate prior odds: Odds = P / (1 - P)
-    prior_odds = prior / (1.0 - prior) if prior < 1.0 else float('inf')
-    
-    # Calculate explicit likelihood ratio
+    # Safeguard against division by zero in likelihood ratio
     likelihood_ratio = p_e_given_h / p_e_given_not_h if p_e_given_not_h > 0 else float('inf')
     
-    # Compute posterior probability using standard theorem syntax
-    numerator = p_e_given_h * prior
-    denominator = numerator + (p_e_given_not_h * (1.0 - prior))
-    posterior = numerator / denominator if denominator > 0 else prior
+    # 1. Convert prior probability to prior odds
+    prior_odds = prior / (1.0 - prior) if prior < 1.0 else float('inf')
     
-    # Calculate posterior odds
-    posterior_odds = posterior / (1.0 - posterior) if posterior < 1.0 else float('inf')
+    # 2. Compute posterior odds directly (Core Fix)
+    if prior_odds == float('inf') or likelihood_ratio == float('inf'):
+        posterior_odds = float('inf')
+    else:
+        posterior_odds = prior_odds * likelihood_ratio
+        
+    # 3. Convert posterior odds back to probability
+    posterior = posterior_odds / (1.0 + posterior_odds) if posterior_odds != float('inf') else 1.0
     
-    # Structural presentation metrics
     delta = posterior - prior
-    confidence = min(abs(delta) * 2, 1.0)
+    
+    # Renamed from confidence to impact_score to reflect statistical reality
+    impact_score = min(abs(delta) * 2, 1.0)
     
     return {
         "prior_probability": round(prior, 4),
@@ -28,5 +29,5 @@ def bayesian_update(prior: float, p_e_given_h: float, p_e_given_not_h: float) ->
         "posterior_probability": round(posterior, 4),
         "posterior_odds": round(posterior_odds, 4) if posterior_odds != float('inf') else "inf",
         "risk_delta": round(delta, 4),
-        "confidence": round(confidence, 4)
+        "impact_score": round(impact_score, 4)
     }

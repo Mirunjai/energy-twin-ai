@@ -1,13 +1,10 @@
 import time
 import sys
-from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import Dict, Any
-from agents.geo_agent import GeopoliticalAgent, EventType
+from agents.geo_agent import GeopoliticalAgent
+from models.schemas import DisruptionSignal, CrisisRoomResponse
 
-# Initialize uptime baseline variables
 START_EPOCH = time.time()
 
 app = FastAPI(
@@ -16,27 +13,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Corrected CORS specification for credentialed requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Active agent instances
 geo_agent = GeopoliticalAgent()
-
-class DisruptionSignal(BaseModel):
-    corridor: str = Field(..., description="Target transit corridor lookup index")
-    supplier: str = Field(..., description="Crude oil source country")
-    event_type: EventType = Field(..., description="Validated type indicator")
-    headline: str = Field(..., description="Raw text context description")
-
-class CrisisRoomResponse(BaseModel):
-    status: str
-    execution_latency_ms: float
-    geopolitical_matrix: Dict[str, Any]
 
 @app.middleware("http")
 async def add_telemetry_headers(request, call_next):
@@ -66,13 +52,12 @@ async def trigger_crisis_room(signal: DisruptionSignal):
         geo_output = geo_agent.analyze_signal(
             corridor=signal.corridor,
             supplier=signal.supplier,
-            event_type=signal.event_type
+            event_type=signal.event_type,
+            raw_text=signal.headline
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Geopolitical Agent runtime fault: {str(e)}")
         
-    # TODO: Sequence subsequent modules (Comm -> Graph -> Monte Carlo -> Optimization)
-    
     latency = (time.perf_counter() - start_time) * 1000
     
     return CrisisRoomResponse(
