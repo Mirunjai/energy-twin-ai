@@ -82,7 +82,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-geo_agent = GeopoliticalAgent(config={"analysis_version": "1.1.0"})
+geo_agent = GeopoliticalAgent()
 
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
@@ -143,3 +143,8 @@ async def trigger_crisis_room(signal: DisruptionSignal):
         execution_latency_ms=round(latency, 2),
         geopolitical_matrix=geo_output
     )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

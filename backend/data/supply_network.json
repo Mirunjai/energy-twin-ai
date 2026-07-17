@@ -1,0 +1,39 @@
+{
+  "nodes": [
+    {"id": "saudi_arabia", "type": "supplier", "name": "Saudi Arabia", "production_mbd": 10.2},
+    {"id": "uae", "type": "supplier", "name": "United Arab Emirates", "production_mbd": 3.2},
+    {"id": "iraq", "type": "supplier", "name": "Iraq", "production_mbd": 4.3},
+    {"id": "kuwait", "type": "supplier", "name": "Kuwait", "production_mbd": 2.5},
+    {"id": "qatar", "type": "supplier", "name": "Qatar", "production_mbd": 1.3},
+    {"id": "usa", "type": "supplier", "name": "United States", "production_mbd": 13.0},
+    {"id": "russia", "type": "supplier", "name": "Russia", "production_mbd": 9.5},
+
+    {"id": "strait_of_hormuz", "type": "corridor", "name": "Strait of Hormuz", "base_closure_prob": 0.05, "transit_days": 4},
+    {"id": "suez_canal", "type": "corridor", "name": "Suez Canal", "base_closure_prob": 0.03, "transit_days": 2},
+    {"id": "bab_el_mandeb", "type": "corridor", "name": "Bab el-Mandeb", "base_closure_prob": 0.08, "transit_days": 3},
+    {"id": "cape_of_good_hope", "type": "corridor", "name": "Cape of Good Hope", "base_closure_prob": 0.01, "transit_days": 14},
+    {"id": "sumed_pipeline", "type": "corridor", "name": "SUMED Pipeline", "base_closure_prob": 0.02, "transit_days": 1},
+
+    {"id": "jamnagar_port", "type": "port", "name": "Jamnagar Port", "storage_days": 21, "country": "India"},
+    {"id": "vadinar_port", "type": "port", "name": "Vadinar Port", "storage_days": 15, "country": "India"},
+    {"id": "rotterdam_port", "type": "port", "name": "Rotterdam Port", "storage_days": 30, "country": "Netherlands"},
+    {"id": "fujairah_port", "type": "port", "name": "Fujairah Port", "storage_days": 18, "country": "UAE"},
+    
+    {"id": "reliance_jamnagar", "type": "refinery", "name": "Reliance Jamnagar", "capacity_mbd": 1.24},
+    {"id": "nayara_vadinar", "type": "refinery", "name": "Nayara Vadinar", "capacity_mbd": 0.40},
+    {"id": "rotterdam_refinery", "type": "refinery", "name": "Rotterdam Refinery", "capacity_mbd": 0.42}
+  ],
+  "edges": [
+    {"source": "saudi_arabia", "target": "strait_of_hormuz", "transport": "tanker", "capacity_mbd": 6.5, "distance_nm": 410, "base_risk_weight": 0.1},
+    {"source": "saudi_arabia", "target": "bab_el_mandeb", "transport": "tanker", "capacity_mbd": 3.0, "distance_nm": 800, "base_risk_weight": 0.15},
+    {"source": "uae", "target": "fujairah_port", "transport": "pipeline", "capacity_mbd": 1.5, "distance_nm": 100, "base_risk_weight": 0.02},
+    {"source": "usa", "target": "cape_of_good_hope", "transport": "tanker", "capacity_mbd": 3.0, "distance_nm": 8500, "base_risk_weight": 0.02},
+    
+    {"source": "strait_of_hormuz", "target": "jamnagar_port", "transport": "tanker", "capacity_mbd": 5.0, "distance_nm": 850, "base_risk_weight": 0.2},
+    {"source": "bab_el_mandeb", "target": "jamnagar_port", "transport": "tanker", "capacity_mbd": 2.5, "distance_nm": 1600, "base_risk_weight": 0.25},
+    {"source": "cape_of_good_hope", "target": "jamnagar_port", "transport": "tanker", "capacity_mbd": 4.0, "distance_nm": 3800, "base_risk_weight": 0.1},
+    
+    {"source": "jamnagar_port", "target": "reliance_jamnagar", "transport": "pipeline", "capacity_mbd": 1.5, "distance_nm": 10, "base_risk_weight": 0.01},
+    {"source": "vadinar_port", "target": "nayara_vadinar", "transport": "pipeline", "capacity_mbd": 0.5, "distance_nm": 8, "base_risk_weight": 0.01}
+  ]
+}
