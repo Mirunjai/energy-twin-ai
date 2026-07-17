@@ -6,7 +6,8 @@ from models.enums import EventType
 from models.schemas import GeoAgentResponse, SignalInputContext, NormalizedContext, BayesianMetrics
 from config.settings import Settings, settings
 
-logger = logging.getLogger(__name__)
+# Bind to the strict hierarchical namespace
+logger = logging.getLogger("energy_twin.geo_agent")
 
 SEVERITY_THRESHOLDS = [
     (0.25, "LOW"),
