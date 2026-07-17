@@ -1,122 +1,91 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from 'react';
+import { UIProvider, useUI } from './context/UIProvider';
+import { SimulationProvider, useSimulation } from './context/SimulationContext';
+import MapView from './components/MapView';
+import ThreatFeed from './components/ThreatFeed';
+import DockContainer from './components/DockContainer';
 
-function App() {
-  const [count, setCount] = useState(0)
+function CommandCenter() {
+  const { phase, isMonitoring, hasRecommendation, isRunning } = useUI();
+  const { executeSimulation, telemetry } = useSimulation();
+  
+  // Dynamic Task Narrator
+  const getTaskString = (currentPhase) => {
+    switch(currentPhase) {
+      case 'INCIDENT': return 'Ingesting Signals...';
+      case 'EXECUTING': return 'Initializing Agents...';
+      case 'ANALYZING': return 'Bayesian Inference';
+      case 'SIMULATING': return 'Monte Carlo Stochastics';
+      case 'OPTIMIZING': return 'Graph Route Optimization';
+      case 'RECOMMENDING': return 'Pipeline Complete';
+      default: return 'Monitoring Global Network';
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="relative w-screen h-screen bg-[#090d16] font-mono overflow-hidden flex items-center justify-center">
+      
+      {/* MAP LAYER */}
+      <div className="absolute inset-0 z-0">
+        <MapView 
+          isDisrupted={!isMonitoring} 
+          showReroute={hasRecommendation || phase === 'OPTIMIZING'}
+          isSimulating={isRunning}
+        />
+      </div>
 
-      <div className="ticks"></div>
+      <div className="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,_rgba(0,243,255,0.02),_transparent_60%)]" />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {/* LEFT HUD: Threat Trigger */}
+      <ThreatFeed 
+        onTriggerCrisis={() => executeSimulation()}
+        isSimulating={isRunning || phase === 'EXECUTING'}
+        hasSimulated={hasRecommendation}
+      />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* RIGHT HUD: The Dockable Sidebar */}
+      <DockContainer />
+
+      {/* STATUS BAR */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 px-6 py-2 border-t border-[#1e293b]/50 bg-[#090d16]/80 backdrop-blur-md flex justify-between items-center text-[9px] uppercase tracking-widest text-slate-500">
+        <div className="flex space-x-6 items-center">
+          <span>NODE: <span className="text-slate-400">FRONTEND_PRIMARY</span></span>
+          <div className="h-3 w-px bg-slate-700" />
+          <span>
+            STATUS: <span className={isMonitoring ? 'text-[#10b981]' : 'text-[#ffb700]'}>{phase}</span>
+          </span>
+          {/* Operator Layer Technical Readout */}
+          {!isMonitoring && (
+            <>
+              <div className="h-3 w-px bg-slate-700" />
+              <span className="text-slate-400">TASK: <span className="text-[#00f3ff] animate-pulse">{getTaskString(phase)}</span></span>
+            </>
+          )}
+        </div>
+        
+        <div className="flex space-x-6">
+          {/* Split Latency Metrics */}
+          {telemetry.networkRtt && (
+            <span>RTT: <span className="text-[#00f3ff]">{telemetry.networkRtt} MS</span></span>
+          )}
+          {telemetry.backendProcess && (
+            <span>BACKEND: <span className="text-[#00f3ff]">{telemetry.backendProcess} MS</span></span>
+          )}
+          {!telemetry.networkRtt && (
+            <span>ENGINE: <span className="text-slate-400">REACT/MAPBOX</span></span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <UIProvider>
+      <SimulationProvider>
+        <CommandCenter />
+      </SimulationProvider>
+    </UIProvider>
+  );
+}
