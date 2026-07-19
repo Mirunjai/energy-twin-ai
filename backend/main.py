@@ -13,7 +13,7 @@ from agents.geo_agent import GeopoliticalAgent
 from graph.network_graph import SupplyChainGraph
 from services.orchestrator import CrisisOrchestrator
 from models.schemas import DisruptionSignal, CrisisRoomResponse
-from simulations.monte_carlo import MonteCarloEngine # <-- Added MonteCarloEngine import
+from simulations.monte_carlo import MonteCarloEngine
 
 # Context variable to hold the Request ID across async boundaries
 request_id_var = contextvars.ContextVar("request_id", default="system")
@@ -91,13 +91,13 @@ app.add_middleware(
 # Initialize the ecosystem globally so it persists across requests
 geo_agent = GeopoliticalAgent(app_settings=settings)
 canonical_graph = SupplyChainGraph(data_path="data/supply_network.json")
-mc_engine = MonteCarloEngine() # <-- Initialized the Monte Carlo engine
+mc_engine = MonteCarloEngine()
 
 # Pass the missing argument into the orchestrator
 orchestrator = CrisisOrchestrator(
     geo_agent=geo_agent, 
     canonical_graph=canonical_graph, 
-    mc_engine=mc_engine # <-- Added mc_engine argument
+    mc_engine=mc_engine
 )
 
 @app.middleware("http")
@@ -129,7 +129,7 @@ async def health_check():
     return {
         "status": "operational",
         "version": app.version,
-        "agents_loaded": ["GeopoliticalAgent", "CrisisOrchestrator", "MonteCarloEngine"], # <-- Optional: added to health check
+        "agents_loaded": ["GeopoliticalAgent", "CrisisOrchestrator", "MonteCarloEngine"],
         "uptime_seconds": round(time.time() - START_EPOCH, 2)
     }
 
