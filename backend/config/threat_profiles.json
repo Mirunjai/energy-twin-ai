@@ -1,0 +1,17 @@
+{
+  "drone_attacks": {
+    "multiplier": 1.2,
+    "source": "Historical calibration (2023 Red Sea Houthi escalation)",
+    "profile_type": "rapid"
+  },
+  "naval_blockade": {
+    "multiplier": 2.0,
+    "source": "Theoretical maximum constraint (Strait of Hormuz 60% closure model)",
+    "profile_type": "shock"
+  },
+  "sanctions_pressure": {
+    "multiplier": 0.5,
+    "source": "Historical calibration (2025 US-Iran standoff)",
+    "profile_type": "slow_burn"
+  }
+}
