@@ -1,4 +1,5 @@
 import logging
+from backend.rag.retriever import EvidenceRetriever
 from agents.geo_agent import GeopoliticalAgent
 from agents.comm_agent import CommodityAgent
 from simulations.monte_carlo import MonteCarloEngine
@@ -19,6 +20,10 @@ class CrisisOrchestrator:
         self.comm_agent = comm_agent
         self.mc_engine = mc_engine
         self.canonical_graph = canonical_graph
+        
+        # Initialize RAG Evidence Retriever
+        self.retriever = EvidenceRetriever()
+        
         logger.info("Crisis Orchestrator initialized.")
 
     def _calculate_confidence_band(self, probability: float) -> str:
@@ -55,45 +60,47 @@ class CrisisOrchestrator:
         """
         context = SimulationContext(
             signal=signal,
-            metadata={"analysis_version": "1.4.0", "scenario_name": f"{signal.corridor}_crisis"}
+            metadata={"analysis_version": "1.5.0", "scenario_name": f"{signal.corridor}_crisis"}
         )
         
-        # 1. Execute Agents
+        # 1. Fetch raw geopolitical signal
         self.geo_agent.run(context)
-        
         geo_prob = context.geo_response.metrics.posterior_probability
         
-        # Extract evidence list to use for confidence scoring later
-        extracted_evidence = getattr(context.geo_response, 'extracted_signals', [
-            "Sanctions pressure elevated",
-            "AIS diversions initiated"
-        ])
+        # 2. Retrieve structured evidence cards
+        # Extract the description safely from the incoming signal payload
+        event_description = getattr(signal, 'description', "")
+        retrieved_evidence = self.retriever.retrieve_analogues(event_description)
+        
+        # 3. Pass both to the HMM (Sprint 4 placeholder)
+        # hmm_state = self.hmm_agent.decode_state(geo_prob, retrieved_evidence)
         
         geo_result = {
             "posterior_probability": geo_prob,
             "supplier_id": context.geo_response.normalized.supplier_id,
             "corridor_id": context.geo_response.normalized.corridor_id,
             "model_confidence": getattr(context.geo_response.metrics, 'confidence', 0.8),
-            "evidence": extracted_evidence
+            "evidence": retrieved_evidence
         }
         
-        # Dynamically determine escort strength (mocked for now, normally from RAG/Intel)
+        # Dynamically determine escort strength (In production, pulled from RAG/Intel agent)
         active_escort_strength = 0.35 
         
+        # 4. Agent 2: Commodity & Logistics (Lanchester + AIS/Market)
         comm_result = self.comm_agent.evaluate_corridor_capacity(
             geo_payload=geo_result, 
             escort_strength=active_escort_strength
         )
         
-        # 2. Establish Confidence Bands
+        # 5. Establish Confidence Bands
         geo_band = self._calculate_confidence_band(geo_prob)
         
         final_cap = comm_result.get("final_capacity", 100)
         logistics_band = "CRITICAL" if comm_result.get("is_critical") else "STABLE"
         
-        # Compute overall system confidence using the observable metrics method
-        evidence_count = len(extracted_evidence)
-        # Using a default freshness of 1.0, though you could map this to signal.metadata.get("freshness", 1.0)
+        # Compute overall system confidence using the dynamically retrieved evidence
+        evidence_count = len(retrieved_evidence) if isinstance(retrieved_evidence, list) else 1
+        
         system_confidence = self._calculate_system_confidence(
             geo_band=geo_band, 
             logistics_band=logistics_band, 
@@ -101,7 +108,7 @@ class CrisisOrchestrator:
             data_freshness=1.0 
         )
         
-        # 3. Disagreement Logic & Escalation Routing
+        # 6. Disagreement Logic & Escalation Routing
         escalation_flag = "MONITORING"
         
         if geo_band in ["VERY LOW", "LOW"] and logistics_band == "CRITICAL":
@@ -121,14 +128,14 @@ class CrisisOrchestrator:
         else:
             disagreement_type = "NONE"
 
-        # 4. Structured Reasoning Trail
+        # 7. Structured Reasoning Trail
         math_context = comm_result.get("mathematical_context", {})
         
         reasoning_trail = {
             "bayesian_evidence": {
                 "posterior": geo_prob,
                 "confidence_band": geo_band,
-                "extracted_signals": extracted_evidence
+                "extracted_signals": retrieved_evidence
             },
             "lanchester_evidence": {
                 "days_to_critical": comm_result.get("days_to_critical"),
@@ -149,17 +156,17 @@ class CrisisOrchestrator:
             "reasoning_trail": reasoning_trail
         }
         
-        # 5. Graph Snapshot Setup
+        # 8. Graph Snapshot Setup
         context.graph_snapshot = self.canonical_graph.snapshot()
         context.graph_snapshot.update_corridor_risk(
             corridor_id=geo_result["corridor_id"], 
             posterior_probability=geo_prob
         )
         
-        # 6. Monte Carlo Engine
+        # 9. Monte Carlo Engine
         self.mc_engine.run(context)
         
-        # 7. Optimization Engine
+        # 10. Optimization Engine
         raw_routes = context.graph_snapshot.get_optimal_reroutes(
             source=geo_result["supplier_id"],
             target="reliance_jamnagar",
