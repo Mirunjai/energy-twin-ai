@@ -57,6 +57,20 @@ class CommodityLogisticsAgent:
             "tanker_availability_index": 0.82     # Squeezed but available
         }
 
+    # Inside CommodityLogisticsAgent
+
+    def calculate_market_recovery(self, logistics_signals, cross_agent_bonuses=0.0):
+        """
+        Calculates the recovery coefficient (r) based on market adaptation 
+        and cooperative inputs from other agents (e.g., SPR release, Procurement reroutes).
+        """
+        base_recovery = 0.05
+        ais_adaptation = logistics_signals.get("ais_diversion_rate", 0.0) * 0.1
+        insurance_drag = -0.02 if logistics_signals.get("insurance_premium_spike") else 0.01
+        
+        # ODE consumes the final 'r'
+        return max(0.01, base_recovery + ais_adaptation + insurance_drag + cross_agent_bonuses)
+        
     def evaluate_corridor_capacity(self, geo_payload, escort_strength=0.5, days_to_simulate=30):
         threat_type = geo_payload.get("threat_type", "default")
         threat_posterior = geo_payload.get("posterior_probability", 0.5)

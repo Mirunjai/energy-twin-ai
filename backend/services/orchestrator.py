@@ -28,6 +28,26 @@ class CrisisOrchestrator:
         if probability < 0.80: return "HIGH"
         return "VERY HIGH"
 
+    def _calculate_system_confidence(self, geo_band: str, logistics_band: str, evidence_count: int, data_freshness: float = 1.0) -> float:
+        """
+        Derives confidence from observable quantities rather than heuristics.
+        - data_freshness: 1.0 (live) to 0.0 (stale)
+        - evidence_count: Number of distinct intelligence sources
+        - agreement: Do Agent 1 and Agent 2 align?
+        """
+        # 1. Base factor from evidence volume (max 0.4)
+        evidence_factor = min(evidence_count * 0.1, 0.4)
+        
+        # 2. Base factor from data freshness (max 0.4)
+        freshness_factor = data_freshness * 0.4
+        
+        # 3. Agreement bonus (max 0.2)
+        agents_agree = (geo_band in ["HIGH", "VERY HIGH"] and logistics_band == "CRITICAL") or \
+                       (geo_band in ["VERY LOW", "LOW"] and logistics_band == "STABLE")
+        agreement_bonus = 0.2 if agents_agree else 0.0
+        
+        return round(min(evidence_factor + freshness_factor + agreement_bonus, 1.0), 2)
+
     def process_disruption(self, signal: DisruptionSignal) -> SimulationContext:
         """
         Main pipeline orchestrating the agents, evaluating consensus, 
@@ -35,27 +55,29 @@ class CrisisOrchestrator:
         """
         context = SimulationContext(
             signal=signal,
-            metadata={"analysis_version": "1.3.0", "scenario_name": f"{signal.corridor}_crisis"}
+            metadata={"analysis_version": "1.4.0", "scenario_name": f"{signal.corridor}_crisis"}
         )
         
         # 1. Execute Agents
         self.geo_agent.run(context)
         
-        # Map context response to the expected geo_result payload shape
         geo_prob = context.geo_response.metrics.posterior_probability
+        
+        # Extract evidence list to use for confidence scoring later
+        extracted_evidence = getattr(context.geo_response, 'extracted_signals', [
+            "Sanctions pressure elevated",
+            "AIS diversions initiated"
+        ])
+        
         geo_result = {
             "posterior_probability": geo_prob,
             "supplier_id": context.geo_response.normalized.supplier_id,
             "corridor_id": context.geo_response.normalized.corridor_id,
             "model_confidence": getattr(context.geo_response.metrics, 'confidence', 0.8),
-            "evidence": getattr(context.geo_response, 'extracted_signals', [
-                "Sanctions pressure elevated",
-                "AIS diversions initiated"
-            ])
+            "evidence": extracted_evidence
         }
         
-        # Dynamically determine escort strength based on geopolitical context
-        # In a real scenario, this is passed from the RAG/Intel agent
+        # Dynamically determine escort strength (mocked for now, normally from RAG/Intel)
         active_escort_strength = 0.35 
         
         comm_result = self.comm_agent.evaluate_corridor_capacity(
@@ -69,8 +91,15 @@ class CrisisOrchestrator:
         final_cap = comm_result.get("final_capacity", 100)
         logistics_band = "CRITICAL" if comm_result.get("is_critical") else "STABLE"
         
-        # Compute overall system confidence (mocked heuristic for structure)
-        system_confidence = round((geo_result.get("model_confidence", 0.8) * 0.6) + 0.35, 2)
+        # Compute overall system confidence using the observable metrics method
+        evidence_count = len(extracted_evidence)
+        # Using a default freshness of 1.0, though you could map this to signal.metadata.get("freshness", 1.0)
+        system_confidence = self._calculate_system_confidence(
+            geo_band=geo_band, 
+            logistics_band=logistics_band, 
+            evidence_count=evidence_count, 
+            data_freshness=1.0 
+        )
         
         # 3. Disagreement Logic & Escalation Routing
         escalation_flag = "MONITORING"
@@ -93,14 +122,13 @@ class CrisisOrchestrator:
             disagreement_type = "NONE"
 
         # 4. Structured Reasoning Trail
-        # Using .get() for nested dictionaries to prevent KeyErrors if the schema shifts
         math_context = comm_result.get("mathematical_context", {})
         
         reasoning_trail = {
             "bayesian_evidence": {
                 "posterior": geo_prob,
                 "confidence_band": geo_band,
-                "extracted_signals": geo_result.get("evidence")
+                "extracted_signals": extracted_evidence
             },
             "lanchester_evidence": {
                 "days_to_critical": comm_result.get("days_to_critical"),
