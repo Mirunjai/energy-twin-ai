@@ -14,6 +14,7 @@ export const triggerCrisisSimulation = async (payload = {}) => {
     corridor: "strait_of_hormuz",
     event_type: "kinetic_incident",
     supplier: "saudi_arabia",
+    headline: "Geopolitical escalation detected in transit corridor",
     ...payload
   };
 
@@ -21,8 +22,17 @@ export const triggerCrisisSimulation = async (payload = {}) => {
   const response = await apiClient.post('/crisis/trigger', defaultPayload);
   const endTime = performance.now();
 
+  // Extract from CrisisRoomResponse structure
+  const simContext = response.data?.simulation_context || {};
+
   return {
-    data: response.data,
+    data: {
+      geo_results: simContext.geo_response || null,
+      monte_carlo_results: simContext.monte_carlo_results || null,
+      optimization_results: {
+        alternatives: simContext.procurement_alternatives || []
+      }
+    },
     telemetry: {
       networkLatency: Math.round(endTime - startTime),
       serverLatency: parseInt(response.headers['x-system-latency-ms'], 10) ?? null,

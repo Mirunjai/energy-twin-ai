@@ -91,3 +91,18 @@ class GeopoliticalAgent:
             analysis_version=self.analysis_version,
             timestamp=datetime.now(timezone.utc).isoformat()
         )
+    
+    def run(self, simulation_context):
+        """
+        Pipeline entrypoint called by orchestrator.
+        Extracts signal from context, runs analysis, stores response.
+        """
+        signal = simulation_context.signal
+        response = self.analyze_signal(
+            corridor=signal.corridor,
+            supplier=signal.supplier,
+            event_type=signal.event_type,
+            raw_text=signal.headline
+        )
+        simulation_context.geo_response = response
+        logger.info(f"Geo agent pipeline complete. Posterior: {response.metrics.posterior_probability:.3f}")

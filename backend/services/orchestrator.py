@@ -28,6 +28,14 @@ class CrisisOrchestrator:
         self.retriever = EvidenceRetriever()
         self.rag_agent = RAGIntelligenceAgent()
         
+        # Auto-seed vector store if empty
+        try:
+            if self.retriever.store.collection.count() == 0:
+                self.retriever.store.ingest_case_studies()
+                logger.info("Vector store auto-seeded with 3 historical case studies (Houthi 2023, Iran 2025, McKinsey).")
+        except Exception as e:
+            logger.warning(f"Vector store seeding attempted but encountered issue: {e}. Retriever may return empty results.")
+        
         logger.info("Crisis Orchestrator initialized.")
 
     def _calculate_confidence_band(self, probability: float) -> str:
@@ -58,7 +66,7 @@ class CrisisOrchestrator:
         geo_prob = context.geo_response.metrics.posterior_probability
         
         # 3. Fixed Retrieval: Call the retriever explicitly
-        event_description = getattr(signal, 'description', "")
+        event_description = signal.headline  # Use the actual schema field
         evidence_cards = self.retriever.retrieve_analogues(event_description)
         
         geo_result = {
