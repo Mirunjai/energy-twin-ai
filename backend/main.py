@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from agents.geo_agent import GeopoliticalAgent
 from agents.comm_agent import CommodityAgent      # 1. FIXED: Imported missing Agent 2
-from agents.orchestrator import CrisisOrchestrator # 2. FIXED: Linked to unified agents dir
+from services.orchestrator import CrisisOrchestrator # 2. FIXED: Linked to unified agents dir
 from graph.network_graph import SupplyChainGraph
 from models.schemas import DisruptionSignal, CrisisRoomResponse
 from simulations.monte_carlo import MonteCarloEngine
