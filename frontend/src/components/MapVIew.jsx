@@ -165,10 +165,10 @@ export default function MapView({ isDisrupted, showReroute, isSimulating }) {
             {isDisrupted && (
               <div className="absolute inset-0 -m-4 rounded-full border border-tactical-red animate-ping opacity-75" />
             )}
-            <span className={`text-xl transition-colors duration-1000 ${isDisrupted ? 'text-tactical-red drop-shadow-[0_0_12px_rgba(255,0,60,1)] scale-125' : 'text-slate-300 drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]'}`}>
+            <span className={`text-xl transition-colors duration-1000 ${isDisrupted ? 'text-tactical-red drop-shadow-[0_0_12px_rgba(255,0,60,1)] scale-125' : 'text-slate-300 drop-shadow-[0_0_4px_rgba(203,213,225,0.8)]'}`}>
               ◎
             </span>
-            <span className={`font-mono text-[10px] font-bold uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded transition-colors duration-1000 ${isDisrupted ? 'text-tactical-red bg-tactical-red/10 border border-tactical-red/30' : 'text-slate-300 opacity-0 group-hover:opacity-100'}`}>
+            <span className={`font-mono text-[10px] font-bold uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded transition-colors duration-1000 ${isDisrupted ? 'text-tactical-red bg-tactical-red/10 border border-tactical-red/50' : 'text-slate-300 bg-panel/80'}`}>
               Hormuz
             </span>
           </div>
