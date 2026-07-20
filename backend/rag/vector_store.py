@@ -20,7 +20,8 @@ class CaseStudyVectorStore:
 
     def ingest_case_studies(self):
         """
-        Seeds the DB with the structured historical analogues required by the Master Plan.
+        Seeds the DB with the enriched, structured historical analogues 
+        required by the Master Plan and the HMM Observation Encoder.
         """
         documents = [
             "Houthi rebel forces launched sustained drone and missile attacks on commercial shipping in the Red Sea, forcing major operators to divert via the Cape of Good Hope. Insurance premiums spiked by 300%.",
@@ -28,21 +29,52 @@ class CaseStudyVectorStore:
             "A sudden geopolitical shock disrupted East African supply chains. The resulting Suez Canal bottleneck delayed VLCCs by an average of 14 days, triggering cascading refinery slowdowns."
         ]
         
-        # Rich metadata turns text into structured evidence
+        # Enriched metadata provides the precise quantitative footprints needed for backtesting
         metadatas = [
-            {"title": "2023 Houthi Red Sea Escalation", "date": "2023-11", "threat": "drone_attacks", "corridor": "red_sea", "citation": "Reuters / Lloyd's List"},
-            {"title": "2025 US-Iran Standoff", "date": "2025-01", "threat": "sanctions_pressure", "corridor": "hormuz", "citation": "OFAC / Financial Times"},
-            {"title": "McKinsey Supply Shock Analysis", "date": "2024-06", "threat": "chokepoint_closure", "corridor": "suez", "citation": "McKinsey Global Institute"}
+            {
+                "title": "2023 Houthi Red Sea Escalation", 
+                "date": "2023-11", 
+                "threat": "drone_attacks", 
+                "corridor": "red_sea", 
+                "citation": "Reuters / Lloyd's List",
+                "severity": "critical",
+                "delay_days": 14,
+                "insurance_spike_pct": 300,
+                "price_shock_pct": 8.2
+            },
+            {
+                "title": "2025 US-Iran Standoff", 
+                "date": "2025-01", 
+                "threat": "sanctions_pressure", 
+                "corridor": "hormuz", 
+                "citation": "OFAC / Financial Times",
+                "severity": "elevated",
+                "delay_days": 0,
+                "insurance_spike_pct": 25,
+                "price_shock_pct": 15.0
+            },
+            {
+                "title": "McKinsey Supply Shock Analysis", 
+                "date": "2024-06", 
+                "threat": "chokepoint_closure", 
+                "corridor": "suez", 
+                "citation": "McKinsey Global Institute",
+                "severity": "critical",
+                "delay_days": 14,
+                "insurance_spike_pct": 150,
+                "price_shock_pct": 5.0
+            }
         ]
         
         ids = ["case_houthi_2023", "case_iran_2025", "case_mckinsey_2024"]
         
+        # Upsert cleanly updates existing keys if re-run during development
         self.collection.upsert(
             documents=documents,
             metadatas=metadatas,
             ids=ids
         )
-        print("Vector store seeded with historical case studies.")
+        print("Vector store seeded with enriched quantitative case studies.")
 
 if __name__ == "__main__":
     store = CaseStudyVectorStore()

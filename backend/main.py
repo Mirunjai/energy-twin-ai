@@ -10,8 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 # Bring in the full ecosystem
 from config.settings import settings
 from agents.geo_agent import GeopoliticalAgent
+from agents.comm_agent import CommodityAgent      # 1. FIXED: Imported missing Agent 2
+from agents.orchestrator import CrisisOrchestrator # 2. FIXED: Linked to unified agents dir
 from graph.network_graph import SupplyChainGraph
-from services.orchestrator import CrisisOrchestrator
 from models.schemas import DisruptionSignal, CrisisRoomResponse
 from simulations.monte_carlo import MonteCarloEngine
 
@@ -90,14 +91,16 @@ app.add_middleware(
 
 # Initialize the ecosystem globally so it persists across requests
 geo_agent = GeopoliticalAgent(app_settings=settings)
+comm_agent = CommodityAgent() # 3. FIXED: Instantiated the logistics tracking instance
 canonical_graph = SupplyChainGraph(data_path="data/supply_network.json")
 mc_engine = MonteCarloEngine()
 
-# Pass the missing argument into the orchestrator
+# 4. FIXED: Passed complete parameters including Agent 2 matching __init__ expectations
 orchestrator = CrisisOrchestrator(
     geo_agent=geo_agent, 
-    canonical_graph=canonical_graph, 
-    mc_engine=mc_engine
+    comm_agent=comm_agent,
+    mc_engine=mc_engine,
+    canonical_graph=canonical_graph 
 )
 
 @app.middleware("http")
@@ -129,7 +132,7 @@ async def health_check():
     return {
         "status": "operational",
         "version": app.version,
-        "agents_loaded": ["GeopoliticalAgent", "CrisisOrchestrator", "MonteCarloEngine"],
+        "agents_loaded": ["GeopoliticalAgent", "CommodityAgent", "CrisisOrchestrator", "MonteCarloEngine"],
         "uptime_seconds": round(time.time() - START_EPOCH, 2)
     }
 
