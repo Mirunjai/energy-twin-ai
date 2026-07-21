@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Bring in the full ecosystem
 from config.settings import settings
 from agents.geo_agent import GeopoliticalAgent
-from agents.comm_agent import CommodityAgent      # 1. FIXED: Imported missing Agent 2
+from agents.comm_agent import CommodityLogisticsAgent      # 1. FIXED: Changed CommodityAgent to CommodityLogisticsAgent
 from services.orchestrator import CrisisOrchestrator # 2. FIXED: Linked to unified agents dir
 from graph.network_graph import SupplyChainGraph
 from models.schemas import DisruptionSignal, CrisisRoomResponse
@@ -91,7 +91,7 @@ app.add_middleware(
 
 # Initialize the ecosystem globally so it persists across requests
 geo_agent = GeopoliticalAgent(app_settings=settings)
-comm_agent = CommodityAgent() # 3. FIXED: Instantiated the logistics tracking instance
+comm_agent = CommodityLogisticsAgent() # 3. FIXED: Instantiated the correctly named logistics tracking instance
 canonical_graph = SupplyChainGraph(data_path="data/supply_network.json")
 mc_engine = MonteCarloEngine()
 
@@ -132,7 +132,7 @@ async def health_check():
     return {
         "status": "operational",
         "version": app.version,
-        "agents_loaded": ["GeopoliticalAgent", "CommodityAgent", "CrisisOrchestrator", "MonteCarloEngine"],
+        "agents_loaded": ["GeopoliticalAgent", "CommodityLogisticsAgent", "CrisisOrchestrator", "MonteCarloEngine"], # Also updated this line to match
         "uptime_seconds": round(time.time() - START_EPOCH, 2)
     }
 
