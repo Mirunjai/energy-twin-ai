@@ -10,7 +10,8 @@ export function SimulationProvider({ children }) {
   const [simulation, setSimulation] = useState({
     geo: null,
     monteCarlo: null,
-    procurement: null
+    procurement: null,
+    agentAnalysis: null
   });
   
   const [telemetry, setTelemetry] = useState({
@@ -34,14 +35,15 @@ export function SimulationProvider({ children }) {
         apiTelemetry = result.telemetry;
       } catch (e) {
         console.warn("Backend not running. Using mock pipeline data.");
-        data = { geo_results: {}, monte_carlo_results: {}, optimization_results: {} };
+        data = { geo_results: {}, monte_carlo_results: {}, optimization_results: {}, agent_analysis: {} };
         apiTelemetry = { networkLatency: 142, serverLatency: 87, requestId: 'mock_req_123' };
       }
 
       setSimulation({
         geo: data?.geo_results || null,
         monteCarlo: data?.monte_carlo_results || null,
-        procurement: data?.optimization_results || null
+        procurement: data?.optimization_results || null,
+        agentAnalysis: data?.agent_analysis || null
       });
 
       setTelemetry({

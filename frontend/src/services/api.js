@@ -31,7 +31,8 @@ export const triggerCrisisSimulation = async (payload = {}) => {
       monte_carlo_results: simContext.monte_carlo_results || null,
       optimization_results: {
         alternatives: simContext.procurement_alternatives || []
-      }
+      },
+      agent_analysis: simContext.metadata?.agent_analysis || null
     },
     telemetry: {
       networkLatency: Math.round(endTime - startTime),

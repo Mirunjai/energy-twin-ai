@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Activity, Route } from 'lucide-react';
+import { ShieldAlert, Activity, Route, BrainCircuit } from 'lucide-react';
+import AgentAnalysisPanel from './AgentAnalysisPanel';
 import { useUI } from '../context/UIProvider';
 import { useSimulation } from '../context/SimulationContext';
 
@@ -35,7 +36,22 @@ export default function DockContainer() {
   const histogramHeights = rawHistogram.map(count => (count / maxCount) * 100);
 
   // 3. PROCUREMENT ALIGNMENT
-  const dailyCost = simulation?.procurement?.cost_delta || "24.5";
+  const altRoute = simulation?.procurement?.alternatives?.[0];
+  const dailyCostRaw = altRoute?.estimated_cost_delta_per_day;
+  const dailyCost = dailyCostRaw ? (dailyCostRaw / 100000).toFixed(1) : "24.5";
+  
+  const routeNodes = altRoute?.path_nodes || [];
+  const routeName = routeNodes.length > 2 
+    ? routeNodes.slice(1, -1).map(n => n.replace(/_/g, ' ').toUpperCase()).join(' → ') 
+    : "CAPE OF GOOD HOPE";
+    
+  const delayDays = altRoute?.total_distance_nm 
+    ? ((altRoute.total_distance_nm - 1200) / 350).toFixed(1) 
+    : "6.5";
+    
+  const priorProb = simulation?.geo?.metrics?.prior_probability
+    ? (simulation.geo.metrics.prior_probability * 100).toFixed(1)
+    : "18.5";
 
   return (
     <div className="fixed right-6 top-[100px] z-20 flex items-start space-x-2 font-mono h-[calc(100vh-140px)] pointer-events-none">
@@ -43,6 +59,12 @@ export default function DockContainer() {
       {/* EXPANDED CONTENT AREA */}
       <div className="w-[320px] relative pointer-events-auto">
         
+        {/* AI REASONING PANEL */}
+        <div className={`absolute top-0 right-0 w-full transition-all duration-500 ease-cinematic origin-right
+          ${activeTab === 'intel' ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none'}`}>
+          <AgentAnalysisPanel agentAnalysis={simulation?.agentAnalysis} />
+        </div>
+
         {/* BAYESIAN PANEL */}
         <div className={`absolute top-0 right-0 w-full transition-all duration-500 ease-cinematic origin-right
           ${activeTab === 'bayes' ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none'}`}>
@@ -54,7 +76,7 @@ export default function DockContainer() {
             <div className="grid grid-cols-2 gap-2 mb-2">
               <div className="p-2 bg-console/50 rounded border border-borderline/50 text-center">
                 <div className="text-[9px] text-slate-500 mb-1">PRIOR</div>
-                <div className="text-sm text-slate-300">18.5%</div>
+                <div className="text-sm text-slate-300">{priorProb}%</div>
               </div>
               <div className="p-2 bg-tactical-red/10 rounded border border-tactical-red/30 text-center">
                 <div className="text-[9px] text-tactical-red mb-1">POSTERIOR</div>
@@ -104,12 +126,12 @@ export default function DockContainer() {
             </div>
             <div className="bg-console/60 p-2 rounded border border-borderline/50 mb-2">
               <div className="text-[9px] text-slate-500 uppercase mb-0.5">Reroute</div>
-              <div className="text-sm font-bold text-slate-200">CAPE OF GOOD HOPE</div>
+              <div className="text-sm font-bold text-slate-200 truncate">{routeName}</div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="p-2 bg-console/40 rounded border border-borderline/40">
                 <div className="text-[8px] text-slate-500 uppercase">Delay</div>
-                <div className="text-xs font-bold text-tactical-amber">+6.5 D</div>
+                <div className="text-xs font-bold text-tactical-amber">+{delayDays > 0 ? delayDays : 6.5} D</div>
               </div>
               <div className="p-2 bg-console/40 rounded border border-borderline/40">
                 <div className="text-[8px] text-slate-500 uppercase">Delta</div>
@@ -148,6 +170,16 @@ export default function DockContainer() {
             className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded border transition-colors ${activeTab === 'route' ? 'bg-tactical-green/20 border-tactical-green text-tactical-green' : 'bg-panel/80 border-borderline text-slate-400 hover:border-tactical-green/50'}`}>
             <span className="text-[8px] uppercase tracking-wider mb-1">ROUTE</span>
             <span className="text-[10px] font-bold">CAPE</span>
+          </button>
+        )}
+
+        {/* Intel Tab */}
+        {['EXECUTING', 'ANALYZING', 'SIMULATING', 'OPTIMIZING', 'RECOMMENDING'].includes(phase) && (
+          <button 
+            onClick={() => setActiveTab(activeTab === 'intel' ? null : 'intel')}
+            className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded border transition-colors ${activeTab === 'intel' ? 'bg-tactical-cyan/20 border-tactical-cyan text-tactical-cyan' : 'bg-panel/80 border-borderline text-slate-400 hover:border-tactical-cyan/50'}`}>
+            <span className="text-[8px] uppercase tracking-wider mb-1">AI</span>
+            <span className="text-[10px] font-bold">INTEL</span>
           </button>
         )}
       </div>
