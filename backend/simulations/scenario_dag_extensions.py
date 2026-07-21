@@ -32,6 +32,7 @@ def estimate_macro_impacts(capacity_shortfall_pct: float) -> dict:
 		"gdp_impact_estimate_pct": gdp_impact_estimate_pct,
 	}
 
+
 # Expected Output Shape (Directional/Elasticity multipliers):
 # {
 #   "power_sector_stress_multiplier": 1.15,
