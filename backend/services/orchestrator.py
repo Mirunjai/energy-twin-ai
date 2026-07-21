@@ -1,9 +1,9 @@
 import logging
 # 1. Fixed Imports: Pull the Retriever and the new consolidated RAG Agent
-from backend.rag.retriever import EvidenceRetriever
-from backend.agents.rag_agent import RAGIntelligenceAgent, ObservationEncoder
+from rag.retriever import EvidenceRetriever
+from agents.rag_agent import RAGIntelligenceAgent, ObservationEncoder
 from agents.geo_agent import GeopoliticalAgent
-from agents.comm_agent import CommodityAgent
+from agents.comm_agent import CommodityLogisticsAgent 
 from simulations.monte_carlo import MonteCarloEngine
 from graph.network_graph import SupplyChainGraph
 from models.schemas import DisruptionSignal, SimulationContext
@@ -15,7 +15,7 @@ class CrisisOrchestrator:
     def __init__(
         self, 
         geo_agent: GeopoliticalAgent, 
-        comm_agent: CommodityAgent, 
+        comm_agent: CommodityLogisticsAgent, 
         mc_engine: MonteCarloEngine, 
         canonical_graph: SupplyChainGraph
     ):

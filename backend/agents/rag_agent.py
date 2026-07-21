@@ -1,7 +1,7 @@
 # backend/agents/rag_agent.py
 import numpy as np
 import logging
-from backend.rag.retriever import EvidenceRetriever
+from rag.retriever import EvidenceRetriever
 
 logger = logging.getLogger("energy_twin.backend.rag_agent")
 

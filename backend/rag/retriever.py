@@ -1,4 +1,4 @@
-from backend.rag.vector_store import CaseStudyVectorStore
+from rag.vector_store import CaseStudyVectorStore
 
 class EvidenceRetriever:
     def __init__(self):
