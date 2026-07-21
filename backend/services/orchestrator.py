@@ -6,7 +6,7 @@ from agents.geo_agent import GeopoliticalAgent
 from agents.comm_agent import CommodityLogisticsAgent 
 from simulations.monte_carlo import MonteCarloEngine
 from graph.network_graph import SupplyChainGraph
-from models.schemas import DisruptionSignal, SimulationContext
+from models.schemas import DisruptionSignal, SimulationContext, ProcurementAlternative
 
 logger = logging.getLogger("energy_twin.backend.orchestrator")
 
@@ -188,7 +188,8 @@ class CrisisOrchestrator:
             target="reliance_jamnagar",
             top_k=3
         )
-        context.procurement_alternatives = raw_routes 
+        # Convert raw dictionaries to Pydantic models to silence the serialization warning
+        context.procurement_alternatives = [ProcurementAlternative(**route) for route in raw_routes]
         
         # Explicit teardown
         context.graph_snapshot = None 

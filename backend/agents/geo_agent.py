@@ -20,7 +20,7 @@ class GeopoliticalAgent:
     def __init__(self, app_settings: Settings = settings):
         self.config = app_settings
         self.analysis_version = self.config.analysis_version
-               
+                
         self.corridor_priors = {
             "strait_of_hormuz": 0.05,
             "suez_canal": 0.03,
@@ -44,7 +44,7 @@ class GeopoliticalAgent:
 
     def analyze_signal(self, corridor: str, supplier: str, event_type: EventType, raw_text: str) -> GeoAgentResponse:
         normalized_corridor = corridor.lower().strip().replace(" ", "_")
-        normalized_supplier = supplier.strip().title()
+        normalized_supplier = supplier.lower().strip().replace(" ", "_")
         
         prior = self.corridor_priors.get(normalized_corridor, 0.05)
         profile = self.likelihoods.get(event_type, {"p_e_given_h": 0.50, "p_e_given_not_h": 0.50})
@@ -78,7 +78,8 @@ class GeopoliticalAgent:
             
         return GeoAgentResponse(
             input=SignalInputContext(corridor=corridor, supplier=supplier, headline=raw_text),
-            normalized=NormalizedContext(corridor=normalized_corridor, supplier=normalized_supplier, event_processed=event_type.value),
+            # FIXED: Changed event_processed to event_type_mapped to satisfy Pydantic
+            normalized=NormalizedContext(corridor_id=normalized_corridor, supplier_id=normalized_supplier, event_processed=event_type.value),
             metrics=bayes_metrics,
             formula={
                 "prior_odds": "Prior / (1 - Prior)",
