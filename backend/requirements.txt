@@ -1,9 +1,11 @@
 fastapi
 uvicorn
+pydantic-settings
 langchain
 networkx
 scipy
 numpy
 hmmlearn
 chromadb
+sentence-transformers
 python-dotenv
