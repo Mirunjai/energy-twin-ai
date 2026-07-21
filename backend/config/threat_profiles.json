@@ -1,4 +1,9 @@
 {
+  "default": {
+    "multiplier": 1.0,
+    "source": "Fallback profile — no specific threat_type matched",
+    "profile_type": "slow_burn"
+  },
   "drone_attacks": {
     "multiplier": 1.2,
     "source": "Historical calibration (2023 Red Sea Houthi escalation)",

@@ -69,13 +69,27 @@ class CrisisOrchestrator:
         event_description = signal.headline  # Use the actual schema field
         evidence_cards = self.retriever.retrieve_analogues(event_description)
         
+        # --- BUG 4 FIX START ---
+        # Reconcile the incoming EventType enum with the JSON threat profile keys
+        threat_mapping = {
+            "kinetic_incident": "drone_attacks",
+            "sanctions_announcement": "sanctions_pressure",
+            "hostile_statement": "naval_blockade",
+            "insurance_premium_spike": "naval_blockade"
+        }
+        
+        # Safely map the event type, falling back to "default" if not found
+        mapped_threat = threat_mapping.get(signal.event_type.value, "default")
+
         geo_result = {
             "posterior_probability": geo_prob,
+            "threat_type": mapped_threat,   # <-- Pass the mapped threat type to Agent 2
             "supplier_id": context.geo_response.normalized.supplier_id,
             "corridor_id": context.geo_response.normalized.corridor_id,
             "model_confidence": getattr(context.geo_response.metrics, 'confidence', 0.8),
             "evidence": evidence_cards
         }
+        # --- BUG 4 FIX END ---
         
         active_escort_strength = 0.35 
         
