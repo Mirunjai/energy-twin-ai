@@ -3,7 +3,8 @@ import json
 import os
 
 
-from pulp import LpProblem,LpMinimize,LpVariable, value
+from pulp import LpProblem,LpMinimize,LpVariable,LpStatus, value
+
 from pulp import lpSum as lpsum
 
 
@@ -37,7 +38,7 @@ def optimize_procurement(graph_data: dict, disrupted_corridor: str = None, risk_
 
 
     COST_PER_NM = 1500.0
-    RISK_PENALTY = 100000.0
+    RISK_PENALTY = 2000000.0
 
 
     model = LpProblem("Procurement_Optimization", LpMinimize)
@@ -83,12 +84,18 @@ def optimize_procurement(graph_data: dict, disrupted_corridor: str = None, risk_
             model += lpsum(incoming) <= nodes[r_id].get("capacity_mbd", 999), f"refinery_{r_id}"
     
         # Constraint: Demand — refineries MUST receive a minimum amount of oil
-    DEMAND_FRACTION = 0.8  # refineries must operate at least 80% capacity
+        # Constraint: Demand — refineries MUST receive oil (only if reachable)
+    DEMAND_FRACTION = 0.8
+    all_targets = {e["target"] for e in edges}  # all nodes that have at least one inbound edge
     for r_id in refineries:
         incoming = [flow_vars[i] for i, e in enumerate(edges) if e["target"] == r_id]
         if incoming:
-            min_demand = nodes[r_id].get("capacity_mbd", 0) * DEMAND_FRACTION
-            model += lpsum(incoming) >= min_demand, f"demand_{r_id}"
+            # Check if the nodes feeding this refinery are themselves reachable
+            feeder_nodes = [e["source"] for e in edges if e["target"] == r_id]
+            feeders_reachable = any(f in all_targets for f in feeder_nodes)
+            if feeders_reachable:
+                min_demand = nodes[r_id].get("capacity_mbd", 0) * DEMAND_FRACTION
+                model += lpsum(incoming) >= min_demand, f"demand_{r_id}"
 
     # Constraint 3: Flow conservation at intermediate nodes (corridors, ports)
     intermediate_ids = [n["id"] for n in graph_data["nodes"] if n["type"] in ("corridor", "port")]
@@ -102,6 +109,11 @@ def optimize_procurement(graph_data: dict, disrupted_corridor: str = None, risk_
 
     model.solve(PULP_CBC_CMD(msg=0))
     
+    status = LpStatus[model.status]
+
+    if status != "Optimal":
+        raise RuntimeError(f"Procurement LP did not find an optimal solution (status: {status})")
+
     # Build results: only include edges with non-zero flow
     results = []
     for i, edge in enumerate(edges):
