@@ -11,6 +11,7 @@ from models.schemas import DisruptionSignal, SimulationContext, ProcurementAlter
 # --- NEW IMPORTS FOR PHASE 1 WIRING ---
 from simulations.scenario_dag_extensions import estimate_macro_impacts
 from optimization.procurement_lp import optimize_procurement
+from agents.spr_agent import SPRTracker
 
 logger = logging.getLogger("energy_twin.backend.orchestrator")
 
@@ -31,6 +32,9 @@ class CrisisOrchestrator:
         # Initialize Agent 3 (Consolidated RAG + HMM)
         self.retriever = EvidenceRetriever()
         self.rag_agent = RAGIntelligenceAgent()
+        
+        # Initialize the fixed SPR agent
+        self.spr_agent = SPRTracker()
         
         # Auto-seed vector store if empty
         try:
@@ -194,6 +198,18 @@ class CrisisOrchestrator:
         
         # 10. Monte Carlo Engine
         self.mc_engine.run(context)
+        
+        # --- NEW SPR WIRING ---
+        shortfall_mbd = context.monte_carlo_results.expected_shortfall_mbd
+        
+        # Run the newly fixed calculation
+        spr_readout = self.spr_agent.calculate_replenishment_window(
+            daily_shortfall_mmbbl=shortfall_mbd
+        )
+        
+        # Attach it to the agent_analysis dictionary so the UI can display it
+        context.metadata["agent_analysis"]["spr_readout"] = spr_readout
+        # ----------------------
         
         # 11. Optimization Engine
         snapshot = context.graph_snapshot
