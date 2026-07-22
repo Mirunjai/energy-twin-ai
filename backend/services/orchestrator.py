@@ -8,6 +8,10 @@ from simulations.monte_carlo import MonteCarloEngine
 from graph.network_graph import SupplyChainGraph
 from models.schemas import DisruptionSignal, SimulationContext, ProcurementAlternative
 
+# --- NEW IMPORTS FOR PHASE 1 WIRING ---
+from simulations.scenario_dag_extensions import estimate_macro_impacts
+from optimization.procurement_lp import optimize_procurement
+
 logger = logging.getLogger("energy_twin.backend.orchestrator")
 
 class CrisisOrchestrator:
@@ -98,6 +102,15 @@ class CrisisOrchestrator:
             geo_payload=geo_result, 
             escort_strength=active_escort_strength
         )
+
+        # --- SCENARIO DAG WIRING START ---
+        # Compute shortfall safely (falling back to 100.0 if max_capacity isn't explicitly defined as an attribute)
+        max_cap = getattr(self.comm_agent, "max_capacity", comm_result.get("initial_capacity", 100.0))
+        final_cap = comm_result.get("final_capacity", 0.0)
+        
+        capacity_shortfall_pct = (max_cap - final_cap) / max_cap if max_cap > 0 else 1.0
+        macro_impacts = estimate_macro_impacts(capacity_shortfall_pct)
+        # --- SCENARIO DAG WIRING END ---
         
         # 4. HMM Integration: Encode Observation
         current_observation = ObservationEncoder.encode(geo_result, comm_result, evidence_cards)
@@ -109,7 +122,6 @@ class CrisisOrchestrator:
         
         # 5. Establish Confidence Bands
         geo_band = self._calculate_confidence_band(geo_prob)
-        final_cap = comm_result.get("final_capacity", 100)
         logistics_band = "CRITICAL" if comm_result.get("is_critical") else "STABLE"
         
         evidence_count = len(evidence_cards) if isinstance(evidence_cards, list) else 1
@@ -168,6 +180,7 @@ class CrisisOrchestrator:
             "evidence_cards": evidence_cards,
             "geo": geo_result,
             "comm": comm_result,
+            "macro_impacts": macro_impacts,  # <-- Added the DAG macro impacts here
             "escalation_status": escalation_flag,
             "reasoning_trail": reasoning_trail
         }
@@ -183,13 +196,37 @@ class CrisisOrchestrator:
         self.mc_engine.run(context)
         
         # 11. Optimization Engine
-        raw_routes = context.graph_snapshot.get_optimal_reroutes(
-            source=geo_result["supplier_id"],
-            target="reliance_jamnagar",
-            top_k=3
+        snapshot = context.graph_snapshot
+        
+        # We need to construct a dict with "nodes" and "edges" for the LP module
+        if hasattr(snapshot, "to_dict"):
+            graph_dict = snapshot.to_dict()
+        else:
+            # GraphSnapshot likely wraps a NetworkX graph (usually .graph, .G, or .network)
+            nx_graph = getattr(snapshot, 'graph', getattr(snapshot, 'G', getattr(snapshot, 'network', None)))
+            
+            if nx_graph is None:
+                # If we still can't find it, log the available attributes so we can see exactly what is inside
+                logger.error(f"GraphSnapshot attributes: {dir(snapshot)}")
+                raise RuntimeError(f"Could not find the NetworkX graph inside GraphSnapshot. Available attributes: {dir(snapshot)}")
+                
+            # Unpack the NetworkX graph into the exact dictionary shape the LP expects
+            graph_dict = {
+                "nodes": [{"id": n, **d} for n, d in nx_graph.nodes(data=True)],
+                "edges": [{"source": u, "target": v, **d} for u, v, d in nx_graph.edges(data=True)]
+            }
+
+        raw_routes = optimize_procurement(
+            graph_data=graph_dict,
+            disrupted_corridor=geo_result["corridor_id"],
+            risk_posterior=geo_prob
         )
-        # Convert raw dictionaries to Pydantic models to silence the serialization warning
-        context.procurement_alternatives = [ProcurementAlternative(**route) for route in raw_routes]
+        # Convert raw dictionaries to Pydantic models (falling back securely if LP returns dicts or objects)
+        context.procurement_alternatives = [
+            ProcurementAlternative(**route) if isinstance(route, dict) else route 
+            for route in raw_routes
+        ]
+        # --- PROCUREMENT LP WIRING END ---
         
         # Explicit teardown
         context.graph_snapshot = None 

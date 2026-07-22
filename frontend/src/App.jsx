@@ -38,7 +38,8 @@ function CommandCenter() {
 
       {/* LEFT HUD: Threat Trigger */}
       <ThreatFeed 
-        onTriggerCrisis={() => executeSimulation()}
+        // ACCEPT THE PAYLOAD AND PASS IT TO THE CONTEXT
+        onTriggerCrisis={(payload) => executeSimulation(payload)}
         isSimulating={isRunning || phase === 'EXECUTING'}
         hasSimulated={hasRecommendation}
       />

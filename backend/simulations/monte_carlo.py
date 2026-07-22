@@ -50,7 +50,7 @@ class MonteCarloEngine:
 
         spr_days = np.where(
             daily_shortfalls_mbd > 0.1,
-            spr_total_capacity_mb / daily_shortfalls_mbd,
+            spr_total_capacity_mb / np.maximum(daily_shortfalls_mbd, 1e-9),
             standard_cover_days
         )
         spr_days = np.clip(spr_days, 0.0, standard_cover_days)
