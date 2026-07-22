@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Activity, Route, BrainCircuit, Database } from 'lucide-react';
+import { ShieldAlert, Activity, Route, BrainCircuit, Database, Zap } from 'lucide-react';
 import AgentAnalysisPanel from './AgentAnalysisPanel';
 import { useUI } from '../context/UIProvider';
 import { useSimulation } from '../context/SimulationContext';
@@ -55,13 +55,22 @@ export default function DockContainer() {
   const isSprStable = !sprAnalysis || sprAnalysis.days_until_breach === Infinity;
   const displaySprDays = isSprStable ? "9.5" : sprAnalysis.days_until_breach.toFixed(1);
 
+  // 5. NEW MACRO IMPACT ALIGNMENT (Phase 3 Punch List)
+  const macro = simulation?.agentAnalysis?.macro_impacts;
+  const gdpImpact = macro?.gdp_trajectory?.gdp_impact_estimate_pct 
+    ? macro.gdp_trajectory.gdp_impact_estimate_pct.toFixed(2) 
+    : "-0.40";
+  const powerStress = macro?.power_sector_stress?.power_sector_stress_multiplier 
+    ? macro.power_sector_stress.power_sector_stress_multiplier.toFixed(2) 
+    : "1.05";
+
   return (
     <div className="fixed right-6 top-[100px] z-20 flex items-start space-x-2 font-mono h-[calc(100vh-140px)] pointer-events-none">
       
       {/* EXPANDED CONTENT AREA */}
       <div className="w-[320px] relative pointer-events-auto">
         
-        {/* NEW SPR PANEL - ALWAYS AVAILABLE */}
+        {/* SPR PANEL */}
         <div className={`absolute top-0 right-0 w-full transition-all duration-500 ease-cinematic origin-right
           ${activeTab === 'spr' ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none'}`}>
           <div className="backdrop-blur-md bg-panel/90 border border-tactical-cyan/50 rounded shadow-2xl p-4">
@@ -148,6 +157,30 @@ export default function DockContainer() {
           </div>
         </div>
 
+        {/* MACRO IMPACT PANEL */}
+        <div className={`absolute top-[130px] right-0 w-full transition-all duration-500 ease-cinematic origin-right
+          ${activeTab === 'macro' ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none'}`}>
+          <div className="backdrop-blur-md bg-panel/90 border border-tactical-amber/50 rounded shadow-2xl p-4">
+            <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-borderline">
+              <Zap className="w-4 h-4 text-tactical-amber" />
+              <h3 className="text-xs font-bold text-tactical-amber tracking-widest">MACRO IMPACTS</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="p-2 bg-tactical-red/10 rounded border border-tactical-red/30 text-center">
+                <div className="text-[9px] text-tactical-red mb-1">GDP IMPACT</div>
+                <div className="text-sm font-bold text-tactical-red">{gdpImpact}%</div>
+              </div>
+              <div className="p-2 bg-tactical-amber/10 rounded border border-tactical-amber/30 text-center">
+                <div className="text-[9px] text-tactical-amber mb-1">POWER STRESS</div>
+                <div className="text-sm font-bold text-tactical-amber">{powerStress}x</div>
+              </div>
+            </div>
+            <div className="text-[9px] text-slate-400 p-2 bg-console/50 rounded leading-relaxed border border-borderline/30">
+              <span className="text-tactical-amber">ANALYSIS:</span> Downstream economic models flag systemic pressure on industrial power generation and GDP trajectory.
+            </div>
+          </div>
+        </div>
+
         {/* PROCUREMENT PANEL */}
         <div className={`absolute top-[280px] right-0 w-full transition-all duration-500 ease-cinematic origin-right
           ${activeTab === 'route' ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none'}`}>
@@ -178,7 +211,7 @@ export default function DockContainer() {
       {/* COLLAPSED TABS COLUMN */}
       <div className="flex flex-col space-y-2 pointer-events-auto w-[60px]">
         
-        {/* NEW: SPR Tab (Always Visible) */}
+        {/* SPR Tab (Always Visible) */}
         <button 
           onClick={() => setActiveTab(activeTab === 'spr' ? null : 'spr')}
           className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded border transition-colors ${activeTab === 'spr' ? 'bg-tactical-cyan/20 border-tactical-cyan text-tactical-cyan' : 'bg-panel/80 border-borderline text-slate-400 hover:border-tactical-cyan/50'}`}>
@@ -201,6 +234,16 @@ export default function DockContainer() {
             className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded border transition-colors ${activeTab === 'mc' ? 'bg-tactical-purple/20 border-tactical-purple text-tactical-purple' : 'bg-panel/80 border-borderline text-slate-400 hover:border-tactical-purple/50'}`}>
             <span className="text-[8px] uppercase tracking-wider mb-1">MC</span>
             <span className="text-[10px] font-bold">{sprDays}D</span>
+          </button>
+        )}
+
+        {/* MACRO Tab */}
+        {['SIMULATING', 'OPTIMIZING', 'RECOMMENDING'].includes(phase) && (
+          <button 
+            onClick={() => setActiveTab(activeTab === 'macro' ? null : 'macro')}
+            className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded border transition-colors ${activeTab === 'macro' ? 'bg-tactical-amber/20 border-tactical-amber text-tactical-amber' : 'bg-panel/80 border-borderline text-slate-400 hover:border-tactical-amber/50'}`}>
+            <span className="text-[8px] uppercase tracking-wider mb-1">MACRO</span>
+            <span className="text-[10px] font-bold">{gdpImpact}%</span>
           </button>
         )}
 

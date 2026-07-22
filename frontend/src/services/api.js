@@ -24,6 +24,9 @@ export const triggerCrisisSimulation = async (payload = {}) => {
 
   // Extract from CrisisRoomResponse structure
   const simContext = response.data?.simulation_context || {};
+  
+  // Safely parse the server latency header to prevent NaN in the UI
+  const parsedLatency = parseInt(response.headers['x-system-latency-ms'], 10);
 
   return {
     data: {
@@ -36,7 +39,7 @@ export const triggerCrisisSimulation = async (payload = {}) => {
     },
     telemetry: {
       networkLatency: Math.round(endTime - startTime),
-      serverLatency: parseInt(response.headers['x-system-latency-ms'], 10) ?? null,
+      serverLatency: Number.isNaN(parsedLatency) ? null : parsedLatency,
       requestId: response.headers['x-request-id'] ?? null,
     }
   };

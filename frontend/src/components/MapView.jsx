@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import Map, { Source, Layer, Marker, NavigationControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Legend from './Legend';
+import { useSimulation } from '../context/SimulationContext';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -42,6 +43,13 @@ const ALTERNATIVE_ROUTE = {
 export default function MapView({ isDisrupted, showReroute, isSimulating }) {
   const mapRef = useRef(null);
   const rotationRef = useRef(null);
+  
+  // Bring in simulation context to track active location
+  const { simulation } = useSimulation();
+  const activeCorridor = simulation?.agentAnalysis?.geo?.corridor_id || 'strait_of_hormuz';
+
+  const isHormuzDisrupted = isDisrupted && activeCorridor === 'strait_of_hormuz';
+  const isBabDisrupted = isDisrupted && activeCorridor === 'bab_el_mandeb';
 
   // --- CAMERA ROTATION ---
   // Ambient Camera Rotation (0.2 degrees per frame update)
@@ -158,18 +166,32 @@ export default function MapView({ isDisrupted, showReroute, isSimulating }) {
           </div>
         </Marker>
 
-        {/* CORRIDOR: Strait of Hormuz */}
+        {/* CORRIDOR 1: Strait of Hormuz */}
         <Marker longitude={56.4} latitude={26.5} anchor="center">
           <div className="flex flex-col items-center cursor-crosshair group relative">
-            {/* The Threat Pulse */}
-            {isDisrupted && (
+            {isHormuzDisrupted && (
               <div className="absolute inset-0 -m-4 rounded-full border border-tactical-red animate-ping opacity-75" />
             )}
-            <span className={`text-xl transition-colors duration-1000 ${isDisrupted ? 'text-tactical-red drop-shadow-[0_0_12px_rgba(255,0,60,1)] scale-125' : 'text-slate-300 drop-shadow-[0_0_4px_rgba(203,213,225,0.8)]'}`}>
+            <span className={`text-xl transition-colors duration-1000 ${isHormuzDisrupted ? 'text-tactical-red drop-shadow-[0_0_12px_rgba(255,0,60,1)] scale-125' : 'text-slate-300 drop-shadow-[0_0_4px_rgba(203,213,225,0.8)]'}`}>
               ◎
             </span>
-            <span className={`font-mono text-[10px] font-bold uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded transition-colors duration-1000 ${isDisrupted ? 'text-tactical-red bg-tactical-red/10 border border-tactical-red/50' : 'text-slate-300 bg-panel/80'}`}>
+            <span className={`font-mono text-[10px] font-bold uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded transition-colors duration-1000 ${isHormuzDisrupted ? 'text-tactical-red bg-tactical-red/10 border border-tactical-red/50' : 'text-slate-300 bg-panel/80'}`}>
               Hormuz
+            </span>
+          </div>
+        </Marker>
+
+        {/* CORRIDOR 2: Bab el-Mandeb (Red Sea) */}
+        <Marker longitude={43.3} latitude={12.6} anchor="center">
+          <div className="flex flex-col items-center cursor-crosshair group relative">
+            {isBabDisrupted && (
+              <div className="absolute inset-0 -m-4 rounded-full border border-tactical-red animate-ping opacity-75" />
+            )}
+            <span className={`text-xl transition-colors duration-1000 ${isBabDisrupted ? 'text-tactical-red drop-shadow-[0_0_12px_rgba(255,0,60,1)] scale-125' : 'text-slate-300 drop-shadow-[0_0_4px_rgba(203,213,225,0.8)]'}`}>
+              ◎
+            </span>
+            <span className={`font-mono text-[10px] font-bold uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded transition-colors duration-1000 ${isBabDisrupted ? 'text-tactical-red bg-tactical-red/10 border border-tactical-red/50' : 'text-slate-300 bg-panel/80'}`}>
+              Bab el-Mandeb
             </span>
           </div>
         </Marker>
