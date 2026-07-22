@@ -15,8 +15,9 @@ India sources roughly 88% of its crude oil from imports, with 40–45% transitin
 - **Retrieves historical analogues** — cited real-world disruptions (the 2023 Houthi Red Sea escalation, the 2025 US–Iran standoff) — and infers the corridor's hidden threat state via a hand-implemented Hidden Markov Model.
 - **Flags agent disagreement explicitly.** When the geopolitical signal and the logistics signal disagree — calm news but alarming shipping data, or vice versa — the system escalates to a human analyst instead of silently averaging conflicting evidence.
 - **Runs Monte Carlo simulations** (10,000 iterations) to project Strategic Petroleum Reserve days-of-cover with a 95% confidence interval.
+- **Projects macroeconomic fallout** — power-sector stress and GDP trajectory impact, via IEA/IMF elasticity multipliers — surfaced on its own panel in the UI, clearly labeled as a directional estimate rather than a forecast.
 - **Recommends procurement alternatives** via a linear-programming optimizer over the live supply-chain graph, factoring routing cost and corridor risk.
-- **Visualizes all of this live** on an interactive digital-twin map, with a real-time reasoning panel showing exactly which evidence and which model produced each recommendation.
+- **Visualizes all of this live** on a corridor-aware digital-twin map — the active threat marker (Strait of Hormuz or Bab el-Mandeb) moves to match whichever corridor the current scenario disrupts — alongside a real-time reasoning panel showing exactly which evidence and which model produced each recommendation.
 
 ## Architecture
 
@@ -99,6 +100,15 @@ frontend/
 ## Grounding
 
 Every mathematical model used here is tied to a real, citable source — Bayesian inference for threat classification, Lanchester's Square Law for attrition modeling, Hidden Markov Models for latent-state sequence inference, Monte Carlo methods for supply-chain disruption risk, and IEA/IMF elasticity figures for downstream macroeconomic impact estimates. The goal throughout has been a system whose reasoning can be checked, not just trusted.
+
+## Known scope & limitations
+
+In the same spirit as the validation section above, here's what's honestly still open, so nothing surfaces as a surprise under questioning:
+
+- **Procurement LP is cost- and risk-based only.** Port-congestion (berth availability/dwell time) and refinery-grade compatibility are modeled in the supply-chain graph's data layer but are not yet wired in as constraints on the optimizer — the ranked recommendation currently reflects routing cost and corridor risk, not berth or grade fit.
+- **Live data feeds are mocked by design.** Geopolitical and logistics signals are replayed from a fixed dataset rather than pulled from NewsAPI, AIS, FRED, or sanctions registries in real time. This is a deliberate scope choice for a time-boxed build, not a broken feature — the reasoning pipeline downstream of the signal is real and runs on whatever data arrives.
+- **The RAG corpus covers the three backtested case studies**, not the broader IEA/McKinsey/RBI reference set described in the original plan — sufficient for historical-analogue retrieval in the current demo, but narrower than a production policy corpus would be.
+- **The Temporal Restricted Boltzmann Machine is a cited roadmap item, not a running model** — a graph-diffusion heuristic produces the equivalent visible behavior (pressure redistributing to alternate routes) without the validation risk of an undertrained generative model.
 
 ## Team
 
