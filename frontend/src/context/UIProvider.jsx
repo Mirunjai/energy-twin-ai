@@ -19,10 +19,15 @@ export function UIProvider({ children }) {
     }
   };
 
+  // Reset the UI back to a clean monitoring state
+  const resetToMonitoring = () => {
+    setPhase('MONITORING');
+  };
+
   return (
     <UIContext.Provider value={{ 
       phase, setPhase, isMonitoring, isExecuting, 
-      isRunning, hasRecommendation, animatePipeline
+      isRunning, hasRecommendation, animatePipeline, resetToMonitoring
     }}>
       {children}
     </UIContext.Provider>

@@ -41,7 +41,8 @@ const CRISIS_SCENARIOS = [
   }
 ];
 
-export default function ThreatFeed({ onTriggerCrisis, isSimulating, hasSimulated }) {
+// ADDED onReset to the props here
+export default function ThreatFeed({ onTriggerCrisis, onReset, isSimulating, hasSimulated }) {
   return (
     <div className={`
       fixed left-6 top-[200px] w-[320px] z-20 
@@ -78,7 +79,6 @@ export default function ThreatFeed({ onTriggerCrisis, isSimulating, hasSimulated
             </p>
             
             <button 
-              // Pass the dynamic payload up to the parent component
               onClick={() => onTriggerCrisis(scenario.payload)}
               disabled={isSimulating || hasSimulated}
               className={`
@@ -96,6 +96,16 @@ export default function ThreatFeed({ onTriggerCrisis, isSimulating, hasSimulated
             </button>
           </div>
         ))}
+        
+        {/* ADDED Reset Button - Only visible when a scenario has finished */}
+        {hasSimulated && (
+          <button 
+            onClick={onReset}
+            className="mt-2 w-full py-2 font-mono text-[10px] font-bold tracking-widest uppercase rounded border bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-300 transition-all shadow-md"
+          >
+            Reset Session / Return to Monitoring
+          </button>
+        )}
       </div>
     </div>
   );

@@ -6,7 +6,8 @@ import ThreatFeed from './components/ThreatFeed';
 import DockContainer from './components/DockContainer';
 
 function CommandCenter() {
-  const { phase, isMonitoring, hasRecommendation, isRunning } = useUI();
+  // 1. ADDED resetToMonitoring here
+  const { phase, isMonitoring, hasRecommendation, isRunning, resetToMonitoring } = useUI();
   const { executeSimulation, telemetry } = useSimulation();
   
   // Dynamic Task Narrator
@@ -38,8 +39,9 @@ function CommandCenter() {
 
       {/* LEFT HUD: Threat Trigger */}
       <ThreatFeed 
-        // ACCEPT THE PAYLOAD AND PASS IT TO THE CONTEXT
         onTriggerCrisis={(payload) => executeSimulation(payload)}
+        // 2. ADDED onReset prop here
+        onReset={resetToMonitoring}
         isSimulating={isRunning || phase === 'EXECUTING'}
         hasSimulated={hasRecommendation}
       />
