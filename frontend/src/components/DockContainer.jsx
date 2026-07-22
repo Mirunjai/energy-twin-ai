@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Activity, Route, BrainCircuit } from 'lucide-react';
+import { ShieldAlert, Activity, Route, BrainCircuit, Database } from 'lucide-react';
 import AgentAnalysisPanel from './AgentAnalysisPanel';
 import { useUI } from '../context/UIProvider';
 import { useSimulation } from '../context/SimulationContext';
@@ -17,20 +17,17 @@ export default function DockContainer() {
     else if (phase === 'MONITORING') setActiveTab(null);
   }, [phase]);
 
-  if (isMonitoring && activeTab === null) return null;
-
-  // 1. GEO ALIGNMENT: Mapping from geo_response.metrics.posterior_probability
+  // 1. GEO ALIGNMENT
   const threatScore = simulation?.geo?.metrics?.posterior_probability 
     ? (simulation.geo.metrics.posterior_probability * 100).toFixed(1) 
     : (simulation?.geo?.posterior_risk ? (simulation.geo.posterior_risk * 100).toFixed(1) : "68.2");
 
-  // 2. MONTE CARLO ALIGNMENT: Mapping from MonteCarloResults schema
-  const mc = simulation?.monteCarlo || simulation?.monte_carlo_results; // Fallback in case JSON casing changes
+  // 2. MONTE CARLO ALIGNMENT
+  const mc = simulation?.monteCarlo || simulation?.monte_carlo_results;
   const sprDays = mc?.spr_days_remaining_mean || "6.1";
   const mcExpectedShortfall = mc?.expected_shortfall_mbd ? `${mc.expected_shortfall_mbd.toFixed(1)} MBD` : '2.4 MBD';
   const mcCI = mc?.confidence_interval_str || "3.1 to 8.2 days";
   
-  // Dynamic Histogram: Convert raw bin counts from Python into 0-100% heights for the UI
   const rawHistogram = mc?.histogram_counts || [2, 4, 8, 15, 35, 65, 100, 85, 45, 20, 10, 5, 2, 1];
   const maxCount = Math.max(...rawHistogram, 1);
   const histogramHeights = rawHistogram.map(count => (count / maxCount) * 100);
@@ -53,12 +50,48 @@ export default function DockContainer() {
     ? (simulation.geo.metrics.prior_probability * 100).toFixed(1)
     : "18.5";
 
+  // 4. NEW SPR AGENT ALIGNMENT (Phase 2)
+  const sprAnalysis = simulation?.agentAnalysis?.spr_readout;
+  const isSprStable = !sprAnalysis || sprAnalysis.days_until_breach === Infinity;
+  const displaySprDays = isSprStable ? "9.5" : sprAnalysis.days_until_breach.toFixed(1);
+
   return (
     <div className="fixed right-6 top-[100px] z-20 flex items-start space-x-2 font-mono h-[calc(100vh-140px)] pointer-events-none">
       
       {/* EXPANDED CONTENT AREA */}
       <div className="w-[320px] relative pointer-events-auto">
         
+        {/* NEW SPR PANEL - ALWAYS AVAILABLE */}
+        <div className={`absolute top-0 right-0 w-full transition-all duration-500 ease-cinematic origin-right
+          ${activeTab === 'spr' ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none'}`}>
+          <div className="backdrop-blur-md bg-panel/90 border border-tactical-cyan/50 rounded shadow-2xl p-4">
+            <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-borderline">
+              <Database className="w-4 h-4 text-tactical-cyan" />
+              <h3 className="text-xs font-bold text-tactical-cyan tracking-widest">STRATEGIC RESERVE</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="p-2 bg-console/50 rounded border border-borderline/50 text-center">
+                <div className="text-[9px] text-slate-500 mb-1">STATUS</div>
+                <div className="text-sm text-tactical-cyan font-bold">{isSprStable ? 'STABLE' : 'DRAWDOWN'}</div>
+              </div>
+              <div className="p-2 bg-tactical-red/10 rounded border border-tactical-red/30 text-center">
+                <div className="text-[9px] text-tactical-red mb-1">DAYS TO BREACH</div>
+                <div className="text-sm font-bold text-tactical-red">{displaySprDays}</div>
+              </div>
+            </div>
+            
+            {!isSprStable && sprAnalysis?.replenishment_trigger_date ? (
+              <div className="text-[9px] text-slate-400 p-2 bg-console/50 rounded leading-relaxed border border-tactical-red/30">
+                <span className="text-tactical-red">WARNING:</span> Critical threshold breach projected on <span className="font-bold text-slate-200">{sprAnalysis.replenishment_trigger_date}</span>. Replenishment ops required.
+              </div>
+            ) : (
+              <div className="text-[9px] text-slate-400 p-2 bg-console/50 rounded leading-relaxed border border-tactical-green/30">
+                <span className="text-tactical-green">SECURE:</span> Reserves are stable at ~45.0M barrels. No breach projected.
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* AI REASONING PANEL */}
         <div className={`absolute top-0 right-0 w-full transition-all duration-500 ease-cinematic origin-right
           ${activeTab === 'intel' ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-4 pointer-events-none'}`}>
@@ -107,7 +140,6 @@ export default function DockContainer() {
                 <div className="text-sm font-bold text-tactical-green">{mcCI}</div>
               </div>
             </div>
-            {/* Dynamic Visual Histogram */}
             <div className="h-16 w-full flex items-end justify-between space-x-[2px] opacity-80 border-b border-borderline pb-1">
               {histogramHeights.map((heightPct, idx) => (
                 <div key={idx} style={{ height: `${heightPct}%` }} className="w-full bg-tactical-purple/60 rounded-t-sm transition-all duration-500" />
@@ -145,6 +177,15 @@ export default function DockContainer() {
 
       {/* COLLAPSED TABS COLUMN */}
       <div className="flex flex-col space-y-2 pointer-events-auto w-[60px]">
+        
+        {/* NEW: SPR Tab (Always Visible) */}
+        <button 
+          onClick={() => setActiveTab(activeTab === 'spr' ? null : 'spr')}
+          className={`w-full flex flex-col items-center justify-center py-2 px-1 rounded border transition-colors ${activeTab === 'spr' ? 'bg-tactical-cyan/20 border-tactical-cyan text-tactical-cyan' : 'bg-panel/80 border-borderline text-slate-400 hover:border-tactical-cyan/50'}`}>
+          <Database className="w-3.5 h-3.5 mb-1" />
+          <span className="text-[10px] font-bold">{displaySprDays}D</span>
+        </button>
+
         {/* Bayes Tab */}
         <button 
           onClick={() => setActiveTab(activeTab === 'bayes' ? null : 'bayes')}
