@@ -1,110 +1,109 @@
 # energy-twin-ai
 
-**An agentic digital twin of India's crude oil supply chain**, built for ET AI Hackathon 2026 (Challenge 2 — AI-Driven Energy Supply Chain Resilience for Import-Dependent Economies).
+**An agentic digital twin of India's crude oil supply chain — built for ET AI Hackathon 2026 (Challenge 2: AI-Driven Energy Supply Chain Resilience for Import-Dependent Economies).**
 
-Feed it a disruption signal — a drone strike near the Strait of Hormuz, a sanctions announcement, an insurance-premium spike — and it reasons about it the way a crisis-response team would: how much to believe the threat, how fast usable shipping capacity erodes under it, whether this has happened before and what happened last time, how many days of strategic reserve that buys the country, and where to reroute procurement instead.
+Feed it a real-world disruption signal — a drone strike near the Strait of Hormuz, a sanctions announcement, an insurance-premium spike — and it reasons about it the way a crisis-response desk would: how much to believe the threat, how fast usable shipping capacity erodes under it, whether this has happened before and what happened last time, how many days of strategic reserve that buys the country, and where to reroute procurement instead.
 
 ## Why this exists
 
-India sources ~88% of its crude oil from imports, with 40–45% transiting the Strait of Hormuz, and holds roughly 9.5 days of Strategic Petroleum Reserve cover. Traditional supply-chain planning tools have no way to model geopolitical scenario impacts in real time. This system replaces a single opaque risk score with cooperating agents that each own a named, citable mathematical model — so the answer to "is this just an LLM wrapper?" is specific and checkable, not a shrug.
+India sources roughly 88% of its crude oil from imports, with 40–45% transiting the Strait of Hormuz, and holds only a matter of days of Strategic Petroleum Reserve cover. Traditional supply-chain planning tools have no way to model geopolitical scenario impacts in real time — they're built for predictable environments, not for a Hormuz closure or a Red Sea shipping suspension. This project replaces a single opaque "risk score" with a set of cooperating agents, each grounded in a named, citable mathematical model, so the reasoning behind every recommendation is traceable and defensible, not a black box.
 
-## Architecture, in one diagram
+## What it does
 
+- **Assesses geopolitical risk** for a supply corridor using a Bayesian posterior update over classified threat signals.
+- **Models shipping-capacity erosion** under sustained threat pressure with a Lanchester attrition equation, including a market-recovery term.
+- **Retrieves historical analogues** — cited real-world disruptions (the 2023 Houthi Red Sea escalation, the 2025 US–Iran standoff) — and infers the corridor's hidden threat state via a hand-implemented Hidden Markov Model.
+- **Flags agent disagreement explicitly.** When the geopolitical signal and the logistics signal disagree — calm news but alarming shipping data, or vice versa — the system escalates to a human analyst instead of silently averaging conflicting evidence.
+- **Runs Monte Carlo simulations** (10,000 iterations) to project Strategic Petroleum Reserve days-of-cover with a 95% confidence interval.
+- **Recommends procurement alternatives** via a linear-programming optimizer over the live supply-chain graph, factoring routing cost and corridor risk.
+- **Visualizes all of this live** on an interactive digital-twin map, with a real-time reasoning panel showing exactly which evidence and which model produced each recommendation.
+
+## Architecture
+
+```mermaid
+graph TD
+    A[Disruption Signal] --> B["Agent 1: Geopolitical Risk<br/>Bayesian posterior update"]
+    B --> C["Agent 2: Commodity & Logistics<br/>Lanchester attrition model"]
+    D[("Historical Case Study<br/>Vector Store")] --> E["Agent 3: RAG + Hidden State<br/>Viterbi-decoded corridor state"]
+    C --> E
+    E --> F["Orchestrator<br/>Disagreement & escalation logic"]
+    F --> G["Monte Carlo Engine<br/>SPR days, 95% CI"]
+    F --> H["Procurement Optimizer<br/>LP over supply graph"]
+    G --> I[Crisis Room Response]
+    H --> I
+    I --> J["Digital Twin UI<br/>React + Mapbox"]
 ```
-news/AIS/OFAC ->  Agent 1: Geopolitical Risk     Bayesian posterior per corridor
-                   (geo_agent.py)                  P(H|E) = P(E|H)P(H) / P(E)
-                        |
-                        v
-                  Agent 2: Commodity/Logistics    Lanchester attrition ODE
-                   (comm_agent.py)                  dM/dt = -c.N^2 + recovery
-                        |
-Chroma vector DB   Agent 3: RAG + Hidden State    Viterbi-decoded corridor state
-(historical  ---->  (rag_agent.py, rag/)            (NORMAL -> CRITICAL) + cited
- case studies)                                       historical analogues
-                        |
-                        v
-                  Orchestrator                    disagreement/escalation logic,
-                   (services/orchestrator.py)        system confidence, reasoning trail
-                        |
-              +---------+---------+
-              v                   v
-   Monte Carlo engine      Graph reroute search
-   (SPR days, 95% CI)      (k-shortest-path over
-                            risk-weighted supply graph)
-              +---------+---------+
-                        v
-              CrisisRoomResponse (JSON)
-                        |
-                        v
-              React frontend — live digital twin (Mapbox)
-```
-
-Full architecture detail (component-by-component, request lifecycle, deliberate divergences from the original plan) is in [`Architecture_Update.docx`](./Architecture_Update.docx).
-
-## The five agents, one line each
-
-1. **Geopolitical Risk Agent** — Bayesian posterior-probability update per corridor, driven by classified evidence (hostile statements, sanctions, insurance spikes, kinetic incidents).
-2. **Commodity & Logistics Agent** — solves a Lanchester attrition ODE to model corridor shipping-capacity erosion under sustained threat pressure, with a market-recovery term.
-3. **RAG + Hidden-State Agent** — retrieves cited historical analogues from a vector store and decodes the corridor's hidden threat state (NORMAL → CRITICAL) via a hand-rolled Viterbi implementation.
-4. **Orchestrator** — resolves disagreement between Agents 1 and 2 (e.g. "news calm, shipping data alarming") into an explicit escalate-to-human decision rather than silently averaging conflicting signals.
-5. **Strategic Reserve Agent** — turns a scenario's projected shortfall into an SPR-days-remaining estimate with a Monte Carlo–derived 95% confidence interval, plus (in progress) a replenishment-window recommendation.
 
 ## Tech stack
 
-- **Backend:** Python, FastAPI, NetworkX (supply-chain graph), SciPy (ODE solving), Chroma + sentence-transformers (RAG vector store), NumPy (Monte Carlo sampling)
-- **Frontend:** React, Vite, Tailwind CSS, Mapbox GL / react-map-gl, Recharts
-- **Data:** a hand-curated supply-chain graph (`backend/data/supply_network.json`) covering major suppliers, maritime corridors, Indian ports, and refineries; a seeded set of cited historical disruption case studies for the RAG layer
+| Layer | Technology |
+|---|---|
+| Backend | Python, FastAPI, SciPy (ODE solving), NetworkX (supply-chain graph), PuLP/CBC (procurement optimization) |
+| Intelligence | Chroma + sentence-transformers (RAG vector store), NumPy (Monte Carlo sampling), a hand-implemented Viterbi decoder (HMM) |
+| Frontend | React, Vite, Tailwind CSS, Mapbox GL / react-map-gl, Recharts |
+| Data | A curated supply-chain graph covering major crude suppliers, maritime corridors, Indian ports, and refineries; a cited set of historical disruption case studies |
 
-## Project structure
-
-```
-backend/
-  agents/          geo_agent, comm_agent, rag_agent, spr_agent
-  graph/           supply-chain graph loading, per-request snapshotting, reroute search
-  rag/             vector store + retriever for historical case-study evidence
-  simulations/     Monte Carlo engine, scenario severity profiles
-  services/        orchestrator — the pipeline that ties every agent together
-  supply_math/     pure math functions (Bayesian update, etc.)
-  models/          Pydantic schemas and enums shared across the app
-  config/          settings and threat-profile calibration data
-  data/            the canonical supply-chain graph dataset
-  main.py          FastAPI app entrypoint
-frontend/
-  src/components/  MapView (digital twin), ThreatFeed (incident trigger), DockContainer (analysis panels)
-  src/context/     UI phase state machine, simulation/API state
-  src/services/    API client
-```
-
-## Setup & run
+## Quickstart
 
 ### Backend
+
 ```bash
 cd backend
 python3 -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp ../.env.example .env           # fill in NEWS_API_KEY / OPENAI_API_KEY as needed
+cp ../.env.example .env
 uvicorn main:app --reload --port 8000
 ```
-Health check: `GET http://localhost:8000/api/health`
+
+Verify it's running:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+> [!NOTE]
+> The RAG layer downloads a sentence-transformer embedding model from Hugging Face on first run. An internet connection is required for that first launch; the model is cached locally afterward.
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
-cp .env.example .env.local        # set VITE_MAPBOX_TOKEN
+cp .env.example .env.local        # add your Mapbox token as VITE_MAPBOX_TOKEN
 npm run dev
 ```
-Opens at `http://localhost:5173`.
 
-## Development status
+Open `http://localhost:5173`. Trigger a disruption scenario from the incident feed and watch the reasoning pipeline execute live — Bayesian update, Lanchester simulation, historical retrieval, Monte Carlo projection, and reroute recommendation — each shown on the digital twin as it completes.
 
-This is an active hackathon build, not a finished product — treating it as anything else would be dishonest to the next person reading this repo. Known bugs, their root causes, and exact fixes are tracked in [`BUG_FIX_LIST.md`](./BUG_FIX_LIST.md). Feature ownership and what's still in progress vs. deliberately descoped is tracked in [`TASK_ASSIGNMENT.md`](./TASK_ASSIGNMENT.md). The Temporal Restricted Boltzmann Machine referenced in the architecture is intentionally kept at roadmap/cited-equation level rather than implemented live — see the architecture doc for the reasoning.
+## Project structure
+
+```
+backend/
+  agents/          Geopolitical, Commodity/Logistics, RAG+HMM, and SPR agents
+  graph/           Supply-chain graph loading, snapshotting, and reroute search
+  rag/             Vector store + retriever for historical case-study evidence
+  simulations/     Monte Carlo engine and scenario impact modeling
+  optimization/    Linear-programming procurement optimizer
+  services/        Orchestrator — coordinates every agent into one response
+  supply_math/     Core mathematical primitives (Bayesian update, etc.)
+  models/          Shared schemas and enums
+  data/            The canonical supply-chain graph dataset
+  main.py          FastAPI application entrypoint
+frontend/
+  src/components/  Digital twin map, incident feed, reasoning/analysis panels
+  src/context/     Application state and simulation data flow
+  src/services/    API client
+```
+
+## Grounding
+
+Every mathematical model used here is tied to a real, citable source — Bayesian inference for threat classification, Lanchester's Square Law for attrition modeling, Hidden Markov Models for latent-state sequence inference, Monte Carlo methods for supply-chain disruption risk, and IEA/IMF elasticity figures for downstream macroeconomic impact estimates. The goal throughout has been a system whose reasoning can be checked, not just trusted.
 
 ## Team
 
-Built by Mirun, Sudarshan, and Narendra for ET AI Hackathon 2026, mentored within the CSE (AI & ML) capstone track.
+Built by Mirun, Sudarshan, and Narendra for ET AI Hackathon 2026.
 
-## References
+## License
 
-Every mathematical model used here is grounded in a real, checked citation (Bayesian text classification, Lanchester's Square Law for irregular warfare, Hidden Markov Models for supply-sequence modeling, Monte Carlo methods for multi-echelon supply-chain disruption risk) — full references in the architecture document.
+Submitted for ET AI Hackathon 2026. Licensing to be finalized post-submission.
