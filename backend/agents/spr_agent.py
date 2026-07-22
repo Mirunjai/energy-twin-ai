@@ -7,7 +7,7 @@ import math
 
 @dataclass
 class SPRTracker:
-    starting_reserve_mmbbl: float = 740.0
+    starting_reserve_mmbbl: float = 45.0
     drawdown_mmbbl_per_day: float = 1.0
     def days_remaining(self, current_reserve_mmbbl: float | None = None) -> float:
         reserve = self.starting_reserve_mmbbl if current_reserve_mmbbl is None else current_reserve_mmbbl
@@ -20,7 +20,7 @@ class SPRTracker:
         self,
         current_reserve_mmbbl: float,
         daily_shortfall_mmbbl: float,
-        minimum_reserve_mmbbl: float = 90.0,  # e.g., ~10 days of baseline cover
+        minimum_reserve_mmbbl: float = 9.0,  # e.g., ~10 days of baseline cover
         start_date: datetime | None = None
     ) -> dict:
         """

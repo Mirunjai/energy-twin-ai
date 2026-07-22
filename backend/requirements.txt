@@ -9,3 +9,4 @@ hmmlearn
 chromadb
 sentence-transformers
 python-dotenv
+pulp
